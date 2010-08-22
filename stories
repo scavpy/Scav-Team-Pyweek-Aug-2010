@@ -1,0 +1,11 @@
+User Stories
+============
+
+1. When I run the game, a window will open showing the title page.
+
+
+2. On the title page, when I click the "Start" button, the title page
+will be replaced by the game.
+
+
+3. After playing the game, I will be returned to the title page.
