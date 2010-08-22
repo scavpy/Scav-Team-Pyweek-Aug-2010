@@ -17,7 +17,7 @@ class Screen(part.Group):
             "bg_margin":18,"bg_radius":42, "bg_round:":0,
             "bd_margin":18,"bd_radius":42, "bd_round:":0,
             },
-        "LabelPanel": { "font":"IM FELL English Roman" },
+        "LabelPanel": { "font":"ExperiMental" },
         }
 
     def __init__(self,name="",**kw):
