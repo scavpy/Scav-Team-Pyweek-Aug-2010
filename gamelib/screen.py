@@ -83,18 +83,26 @@ class GameScreen(Screen):
             },
         }
 
+    def __init__(self,name="",level=None,**kw):
+        self.level = level
+        super(GameScreen,self).__init__(name,**kw)
+
     def build_parts(self,**kw):
         lev = panel.LabelPanel(
             "level_indicator",
             text="Level 01",multiline="True",
             geom=dict(pos=(60,730,0)))                
         ov = OrthoView("frame",[lev])
+        with ov.compile_style():
+            glClearColor(0,0,0,0)
         self.append(ov)
-        hf = graphics.HexagonField("hexfield")
+        hf = graphics.HexagonField("hexfield",self.level)
         sv = SceneView("scene",[hf],
                        geom=dict(vport=(0,0,768,768)))
-        sv.camera.look_at((0,0,0))
-        sv.camera.look_from((0,-20,100))
+        pu,pv = hf.player_start
+        x,y = graphics.hex_to_world_coords(pu,pv)
+        sv.camera.look_at((x,y,0))
+        sv.camera.look_from((x,y-20,100))
         self.append(sv)
         
     def click(self,x,y,button,mods):
@@ -125,7 +133,8 @@ class TitleScreen(Screen):
     def pick(self,label):
         name = label.target._name
         if name == "Start":
-            self.exit_to(GameScreen)
+            
+            self.exit_to(GameScreen,level={"body":["H102, ,H204, ,S,H321"]})
         elif name == "Quit":
             self.exit_to(None)
         else:
