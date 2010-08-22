@@ -75,10 +75,12 @@ class Screen(part.Group):
         pass
 
 class Player(objpart.ObjPart):
-    def setup_style(self):
-        glEnable(GL_LIGHTING)
-        glEnable(GL_COLOR_MATERIAL)
-        glColor3f(0.9,0.8,0.6)
+    pass
+#
+#    def setup_style(self):
+#        glEnable(GL_LIGHTING)
+#        glDisable(GL_COLOR_MATERIAL)
+#        glColor4f(0.0,0.8,0.6,1.0)
 
 class GameScreen(Screen):
     _screen_styles = {
