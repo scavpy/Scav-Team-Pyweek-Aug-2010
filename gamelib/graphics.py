@@ -17,8 +17,8 @@ def hex_to_world_coords(u,v):
     return u*1.5, v*Vspace + Vhalf * (u%2)
 
 TILE_OBJECTS = {
-    "#":objpart.get_obj("data/models/hex.obj"),
-    "H":objpart.get_obj("data/models/hex.obj"),
+    "#":objpart.get_obj("hex.obj"),
+    "H":objpart.get_obj("hex.obj"),
 }
 
 class HexagonField(part.Part):

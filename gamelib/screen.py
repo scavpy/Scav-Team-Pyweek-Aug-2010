@@ -3,8 +3,11 @@ Screen module.
 
 The game is divided into Screens
 """
+import pickle
+import pyglet
+
 from tdgl.gl import *
-from tdgl import part, picking, panel, stylesheet
+from tdgl import part, picking, panel, stylesheet, lighting
 from tdgl.viewpoint import OrthoView, SceneView
 
 import graphics
@@ -85,7 +88,11 @@ class GameScreen(Screen):
 
     def __init__(self,name="",level=None,**kw):
         self.level = level
+        self.light = lighting.claim_light()
         super(GameScreen,self).__init__(name,**kw)
+
+    def __del__(self):
+        lighting.release_light(self.light)
 
     def build_parts(self,**kw):
         lev = panel.LabelPanel(
@@ -95,6 +102,7 @@ class GameScreen(Screen):
         ov = OrthoView("frame",[lev])
         with ov.compile_style():
             glClearColor(0,0,0,0)
+            glDisable(GL_LIGHTING)
         self.append(ov)
         hf = graphics.HexagonField("hexfield",self.level)
         sv = SceneView("scene",[hf])
@@ -102,8 +110,17 @@ class GameScreen(Screen):
         x,y = graphics.hex_to_world_coords(pu,pv)
         sv.camera.look_at((x,y,0))
         sv.camera.look_from((x,y-20,100))
+        with sv.compile_style():
+            glEnable(GL_LIGHTING)
+            glEnable(GL_COLOR_MATERIAL)
+        lighting.light_position(self.light,(10,10,10,0))
+        lighting.light_colour(self.light,(1,1,1,1))
+        lighting.light_switch(self.light,True)
         self.append(sv)
         
+    def setup_style(self):
+        lighting.setup()
+
     def click(self,x,y,button,mods):
         """ Click to fire """
         if button != 1:
@@ -127,15 +144,15 @@ class TitleScreen(Screen):
             geom=dict(left=0,right=1024,top=768,bottom=0))
         with container.compile_style():
             glClearColor(0.2,0,0,0)
+            glDisable(GL_LIGHTING)
         self.append(container)
 
     def pick(self,label):
         name = label.target._name
         if name == "Start":
-            
-            self.exit_to(GameScreen,
-                         level={"body":["H102, ,H204, ,S,H321",
-                                        "H001,X,H102, ,H301,H012"]})
+            with pyglet.resource.file("level01.lev") as lf:
+                level = pickle.load(lf)
+            self.exit_to(GameScreen, level=level)
         elif name == "Quit":
             self.exit_to(None)
         else:
