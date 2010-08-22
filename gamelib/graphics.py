@@ -3,7 +3,7 @@
 """
 import pickle
 from tdgl.gl import *
-from tdgl import part
+from tdgl import part, objpart
 
 # vertical and horizontal spacing of hexagons
 Vspace = 3**0.5
@@ -15,6 +15,11 @@ hexcorners = [(1,0),(0.5,Vhalf),
 
 def hex_to_world_coords(u,v):
     return u*1.5, v*Vspace + Vhalf * (u%2)
+
+TILE_OBJECTS = {
+    "#":objpart.get_obj("data/models/hex.obj"),
+    "H":objpart.get_obj("data/models/hex.obj"),
+}
 
 class HexagonField(part.Part):
     """A field of hexagonal tiles on a grid, where the 
@@ -53,7 +58,8 @@ class HexagonField(part.Part):
         # Compile display lists
         for k,n in self.celltypes.items():
             with gl_compile(self.dlbase + n):
-                if k in (""," ","S"): # space or player start
+                # space or player start or enemy
+                if k[:1] in ("","E"," ","S"):
                     glLineWidth(1)
                     glColor4f(0,0.4,0.3,0.3)
                     with gl_begin(GL_LINE_LOOP):
@@ -62,9 +68,10 @@ class HexagonField(part.Part):
                 elif k[0] == "H":  # hexagon tile
                     colour = tuple(0.25*int(c) for c in k[1:])
                     glColor3f(*colour)
-                    with gl_begin(GL_POLYGON): # STUB
-                        for x,y in hexcorners:
-                            glVertex2f(x,y)
+                    glCallList(TILE_OBJECTS["H"].mesh_dls["hex"])
+                elif k == "#": #wall
+                    glColor3f(0.3,0.3,0.3)
+                    glCallList(TILE_OBJECTS["H"].mesh_dls["hex"])                    
                 elif k[0] == "X":  # exit
                     glColor3f(1,1,1)
                     glLineWidth(3)
