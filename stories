@@ -2,6 +2,7 @@ User Stories
 ============
 
 1. When I run the game, a window will open showing the title page.
+   (scav)  branch: screen, status: review
 
 
 2. On the title page, when I click the "Start" button, the title page
