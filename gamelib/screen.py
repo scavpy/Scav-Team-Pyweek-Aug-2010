@@ -73,15 +73,28 @@ class Screen(part.Group):
 
 
 class GameScreen(Screen):
+    _screen_styles = {
+        "#level_indicator": {
+            "bg":(0.6,0.5,0.1,1), "fg":(1,1,1,1),
+            "font_size":14, "font":"Courier",
+            "border":2, "bd":(1,1,1,1),
+            "bg_margin":10,"bg_radius":20, "bg_round:":0,
+            "bd_margin":10,"bd_radius":20, "bd_round:":0,
+            },
+        }
 
     def build_parts(self,**kw):
+        lev = panel.LabelPanel(
+            "level_indicator",
+            text="Level 01",multiline="True",
+            geom=dict(pos=(60,730,0)))                
+        ov = OrthoView("frame",[lev])
+        self.append(ov)
         hf = graphics.HexagonField("hexfield")
         sv = SceneView("scene",[hf],
                        geom=dict(vport=(0,0,768,768)))
         sv.camera.look_at((0,0,0))
         sv.camera.look_from((0,-20,100))
-        with sv.compile_style():
-            glClearColor(0.1,0.2,0.5,0)
         self.append(sv)
         
     def click(self,x,y,button,mods):
@@ -106,7 +119,7 @@ class TitleScreen(Screen):
             "ortho", [start_btn, quit_btn],
             geom=dict(left=0,right=1024,top=768,bottom=0))
         with container.compile_style():
-            glClearColor(0,0,0,0)
+            glClearColor(0.2,0,0,0)
         self.append(container)
 
     def pick(self,label):
