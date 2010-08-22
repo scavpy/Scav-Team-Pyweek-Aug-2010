@@ -3,9 +3,14 @@ Screen module.
 
 The game is divided into Screens
 """
+import pickle
+import pyglet
+
 from tdgl.gl import *
-from tdgl import part, picking, panel, stylesheet
-from tdgl.viewpoint import OrthoView
+from tdgl import part, picking, panel, stylesheet, lighting, objpart
+from tdgl.viewpoint import OrthoView, SceneView
+
+import graphics
 
 class Screen(part.Group):
     _next = None
@@ -69,8 +74,63 @@ class Screen(part.Group):
     def pick(self,label):
         pass
 
+class Player(objpart.ObjPart):
+    pass
+#
+#    def setup_style(self):
+#        glEnable(GL_LIGHTING)
+#        glDisable(GL_COLOR_MATERIAL)
+#        glColor4f(0.0,0.8,0.6,1.0)
 
 class GameScreen(Screen):
+    _screen_styles = {
+        "#level_indicator": {
+            "bg":(0.6,0.5,0.1,1), "fg":(1,1,1,1),
+            "font_size":14, "font":"Courier",
+            "border":2, "bd":(1,1,1,1),
+            "bg_margin":10,"bg_radius":20, "bg_round:":0,
+            "bd_margin":10,"bd_radius":20, "bd_round:":0,
+            },
+        "#player" : {
+            "obj-filename":"crab.obj"
+            },
+        }
+
+    def __init__(self,name="",level=None,**kw):
+        self.level = level
+        self.light = lighting.claim_light()
+        super(GameScreen,self).__init__(name,**kw)
+
+    def __del__(self):
+        lighting.release_light(self.light)
+
+    def build_parts(self,**kw):
+        lev = panel.LabelPanel(
+            "level_indicator",
+            text="Level 01",multiline="True",
+            geom=dict(pos=(60,730,0)))                
+        ov = OrthoView("frame",[lev])
+        with ov.compile_style():
+            glClearColor(0,0,0,0)
+            glDisable(GL_LIGHTING)
+        self.append(ov)
+        hf = graphics.HexagonField("hexfield",self.level)
+        pu,pv = hf.player_start
+        x,y = graphics.hex_to_world_coords(pu,pv)
+        player = Player(name="player",
+            geom=dict(pos=(x,y,0)))
+        sv = SceneView("scene",[hf,player])
+        sv.camera.look_at((x,y,0))
+        sv.camera.look_from((x,y-20,100))
+        with sv.compile_style():
+            glEnable(GL_LIGHTING)
+        lighting.light_position(self.light,(10,10,10,0))
+        lighting.light_colour(self.light,(1,1,1,1))
+        lighting.light_switch(self.light,True)
+        self.append(sv)
+        
+    def setup_style(self):
+        lighting.setup()
 
     def click(self,x,y,button,mods):
         """ Click to fire """
@@ -82,21 +142,28 @@ class GameScreen(Screen):
 class TitleScreen(Screen):
 
     def build_parts(self,**kw):
-        start_btn = panel.LabelPanel("Start", text=" Start ",
-                                     geom=dict(pos=(512,200,0)),
-                                     style_classes=['button'])
-        quit_btn = panel.LabelPanel("Quit", text=" Quit ",
-                                     geom=dict(pos=(512,100,0)),
-                                     style_classes=['button'])
-        container = OrthoView("ortho", [start_btn, quit_btn],
-                              geom=dict(left=0,right=1024,top=768,bottom=0))
+        start_btn = panel.LabelPanel(
+            "Start", text=" Start ",
+            geom=dict(pos=(512,200,0)),
+            style_classes=['button'])
+        quit_btn = panel.LabelPanel(
+            "Quit", text=" Quit ",
+            geom=dict(pos=(512,100,0)),
+            style_classes=['button'])
+        container = OrthoView(
+            "ortho", [start_btn, quit_btn],
+            geom=dict(left=0,right=1024,top=768,bottom=0))
+        with container.compile_style():
+            glClearColor(0.2,0,0,0)
+            glDisable(GL_LIGHTING)
         self.append(container)
 
     def pick(self,label):
         name = label.target._name
         if name == "Start":
-            print label.target._style
-            self.exit_to(GameScreen)
+            with pyglet.resource.file("level01.lev") as lf:
+                level = pickle.load(lf)
+            self.exit_to(GameScreen, level=level)
         elif name == "Quit":
             self.exit_to(None)
         else:
