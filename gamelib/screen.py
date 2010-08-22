@@ -7,7 +7,7 @@ import pickle
 import pyglet
 
 from tdgl.gl import *
-from tdgl import part, picking, panel, stylesheet, lighting
+from tdgl import part, picking, panel, stylesheet, lighting, objpart
 from tdgl.viewpoint import OrthoView, SceneView
 
 import graphics
@@ -74,6 +74,11 @@ class Screen(part.Group):
     def pick(self,label):
         pass
 
+class Player(objpart.ObjPart):
+    def setup_style(self):
+        glEnable(GL_LIGHTING)
+        glEnable(GL_COLOR_MATERIAL)
+        glColor3f(0.9,0.8,0.6)
 
 class GameScreen(Screen):
     _screen_styles = {
@@ -83,6 +88,9 @@ class GameScreen(Screen):
             "border":2, "bd":(1,1,1,1),
             "bg_margin":10,"bg_radius":20, "bg_round:":0,
             "bd_margin":10,"bd_radius":20, "bd_round:":0,
+            },
+        "#player" : {
+            "obj-filename":"crab.obj"
             },
         }
 
@@ -105,14 +113,15 @@ class GameScreen(Screen):
             glDisable(GL_LIGHTING)
         self.append(ov)
         hf = graphics.HexagonField("hexfield",self.level)
-        sv = SceneView("scene",[hf])
         pu,pv = hf.player_start
         x,y = graphics.hex_to_world_coords(pu,pv)
+        player = Player(name="player",
+            geom=dict(pos=(x,y,0)))
+        sv = SceneView("scene",[hf,player])
         sv.camera.look_at((x,y,0))
         sv.camera.look_from((x,y-20,100))
         with sv.compile_style():
             glEnable(GL_LIGHTING)
-            glEnable(GL_COLOR_MATERIAL)
         lighting.light_position(self.light,(10,10,10,0))
         lighting.light_colour(self.light,(1,1,1,1))
         lighting.light_switch(self.light,True)

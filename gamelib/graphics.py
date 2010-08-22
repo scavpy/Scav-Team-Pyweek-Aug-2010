@@ -71,7 +71,7 @@ class HexagonField(part.Part):
                     glCallList(TILE_OBJECTS["H"].mesh_dls["hex"])
                 elif k == "#": #wall
                     glColor3f(0.3,0.3,0.3)
-                    glCallList(TILE_OBJECTS["H"].mesh_dls["hex"])                    
+                    glCallList(TILE_OBJECTS["#"].mesh_dls["hex"])
                 elif k[0] == "X":  # exit
                     glColor3f(1,1,1)
                     glLineWidth(3)
@@ -82,6 +82,12 @@ class HexagonField(part.Part):
                             glVertex2f(x,y)
                 else:
                     pass # TODO the rest
+
+    def setup_style(self):
+        glEnable(GL_COLOR_MATERIAL)
+
+    def setdown_style(self):
+        glDisable(GL_COLOR_MATERIAL)
 
     def render(self, mode):
         dlbase = self.dlbase
