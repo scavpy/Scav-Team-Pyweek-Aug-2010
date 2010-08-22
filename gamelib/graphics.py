@@ -8,15 +8,15 @@ from tdgl import part
 Vspace = 3**0.5
 Vhalf = Vspace / 2
 
-hexcorners = [(0.5,0),(0.25,Vhalf),
-              (-0.25,Vhalf),(-0.5,0),
-              (-0.25,-Vhalf),(0.25,-Vhalf)]
+hexcorners = [(1,0),(0.5,Vhalf),
+              (-0.5,Vhalf),(-1,0),
+              (-0.5,-Vhalf),(0.5,-Vhalf)]
 
 class HexagonField(part.Part):
     """A field of hexagonal tiles on a grid, where the 
     centre of hexagons in even columns are at
-    x = u, y = Vspace * v; center of hexagons in odd
-    columns are x = u, y = Vspace * v + Vhalf"""
+    x = 1.5u, y = Vspace * v; center of hexagons in odd
+    columns are x = 1.5u, y = Vspace * v + Vhalf"""
     def __init__(self,name="",hextypes=(),**kw):
         super(HexagonField,self).__init__(name,**kw)
         self.hextypes = list(hextypes)
