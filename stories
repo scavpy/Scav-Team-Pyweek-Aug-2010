@@ -2,12 +2,18 @@ User Stories
 ============
 
 1. When I run the game, a window will open showing the title page.
-   (scav)  branch: screen, status: review
+   (scav)  branch: screen, status: done
 
 
 2. On the title page, when I click the "Start" button, the title page
    will be replaced by the game.
-   (scav)  branch: screen, status: dev
+   (scav)  branch: screen, status: done
 
 3. After playing the game, I will be returned to the title page.
-   (scav) branch: screen, status: dev
+   (scav) branch: screen, status: done
+
+4. When I start playing the game, I will see a grid of hexagons
+   representing the first game level, with the camera centred on a
+   representation of the player.
+   (scav) branch: hexagons, status: dev
+
