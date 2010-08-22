@@ -2,10 +2,12 @@ User Stories
 ============
 
 1. When I run the game, a window will open showing the title page.
+   (scav)  branch: screen, status: review
 
 
 2. On the title page, when I click the "Start" button, the title page
-will be replaced by the game.
-
+   will be replaced by the game.
+   (scav)  branch: screen, status: dev
 
 3. After playing the game, I will be returned to the title page.
+   (scav) branch: screen, status: dev
