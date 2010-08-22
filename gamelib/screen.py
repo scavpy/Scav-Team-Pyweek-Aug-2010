@@ -97,8 +97,7 @@ class GameScreen(Screen):
             glClearColor(0,0,0,0)
         self.append(ov)
         hf = graphics.HexagonField("hexfield",self.level)
-        sv = SceneView("scene",[hf],
-                       geom=dict(vport=(0,0,768,768)))
+        sv = SceneView("scene",[hf])
         pu,pv = hf.player_start
         x,y = graphics.hex_to_world_coords(pu,pv)
         sv.camera.look_at((x,y,0))
@@ -134,7 +133,9 @@ class TitleScreen(Screen):
         name = label.target._name
         if name == "Start":
             
-            self.exit_to(GameScreen,level={"body":["H102, ,H204, ,S,H321"]})
+            self.exit_to(GameScreen,
+                         level={"body":["H102, ,H204, ,S,H321",
+                                        "H001,X,H102, ,H301,H012"]})
         elif name == "Quit":
             self.exit_to(None)
         else:
