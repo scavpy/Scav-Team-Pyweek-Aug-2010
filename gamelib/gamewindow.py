@@ -51,7 +51,7 @@ class GameWindow(pyglet.window.Window):
         if s:
             s.keyup(sym,mods)
 
-    def on_mouse_press(self,x,t,button,mods):
+    def on_mouse_press(self,x,y,button,mods):
         s = self.this_screen
         if s:
             s.click(x,y,button,mods)
