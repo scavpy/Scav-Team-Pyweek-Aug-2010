@@ -5,7 +5,9 @@ The game is divided into Screens
 """
 from tdgl.gl import *
 from tdgl import part, picking, panel, stylesheet
-from tdgl.viewpoint import OrthoView
+from tdgl.viewpoint import OrthoView, SceneView
+
+import graphics
 
 class Screen(part.Group):
     _next = None
@@ -72,6 +74,16 @@ class Screen(part.Group):
 
 class GameScreen(Screen):
 
+    def build_parts(self,**kw):
+        hf = graphics.HexagonField("hexfield")
+        sv = SceneView("scene",[hf],
+                       geom=dict(vport=(0,0,768,768)))
+        sv.camera.look_at((0,0,0))
+        sv.camera.look_from((0,-20,100))
+        with sv.compile_style():
+            glClearColor(0.1,0.2,0.5,0)
+        self.append(sv)
+        
     def click(self,x,y,button,mods):
         """ Click to fire """
         if button != 1:
@@ -82,20 +94,24 @@ class GameScreen(Screen):
 class TitleScreen(Screen):
 
     def build_parts(self,**kw):
-        start_btn = panel.LabelPanel("Start", text=" Start ",
-                                     geom=dict(pos=(512,200,0)),
-                                     style_classes=['button'])
-        quit_btn = panel.LabelPanel("Quit", text=" Quit ",
-                                     geom=dict(pos=(512,100,0)),
-                                     style_classes=['button'])
-        container = OrthoView("ortho", [start_btn, quit_btn],
-                              geom=dict(left=0,right=1024,top=768,bottom=0))
+        start_btn = panel.LabelPanel(
+            "Start", text=" Start ",
+            geom=dict(pos=(512,200,0)),
+            style_classes=['button'])
+        quit_btn = panel.LabelPanel(
+            "Quit", text=" Quit ",
+            geom=dict(pos=(512,100,0)),
+            style_classes=['button'])
+        container = OrthoView(
+            "ortho", [start_btn, quit_btn],
+            geom=dict(left=0,right=1024,top=768,bottom=0))
+        with container.compile_style():
+            glClearColor(0,0,0,0)
         self.append(container)
 
     def pick(self,label):
         name = label.target._name
         if name == "Start":
-            print label.target._style
             self.exit_to(GameScreen)
         elif name == "Quit":
             self.exit_to(None)
