@@ -2,6 +2,8 @@
    GameWindow is a pyglet window that runs a series of game screens
 
 """
+import gc
+import pprint
 import pyglet
 from tdgl.gl import tdgl_draw_parts
 import screen
@@ -22,6 +24,7 @@ class GameWindow(pyglet.window.Window):
         s.step(ms)
         if s.expired():
             try:
+                del self.this_screen
                 s = screen.next()
                 s.resize(*self.get_size())
                 self.this_screen = s
