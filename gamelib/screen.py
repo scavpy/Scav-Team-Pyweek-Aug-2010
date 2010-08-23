@@ -8,6 +8,8 @@ import pyglet
 from pyglet.window import key as pygletkey
 from math import atan2,degrees
 
+from pygame import mixer
+
 from tdgl.gl import *
 from tdgl import part, picking, panel, stylesheet, lighting, objpart
 from tdgl.viewpoint import OrthoView, SceneView
@@ -17,7 +19,7 @@ import graphics
 import main # for options
 
 MUSIC = {
-    "title":pyglet.resource.media("subterranean.ogg"),
+    "title":"data/sound/subterranean.ogg",
     "gameplay":None,
     }
 
@@ -223,7 +225,8 @@ class TitleScreen(Screen):
 
     def build_parts(self,**kw):
         # Playing music in a common function between screens
-        self.music = MUSIC.get("title")
+        mixer.music.load(MUSIC.get("title"))
+        mixer.music.play(-1)
         start_btn = panel.LabelPanel(
             "Start", text=" Start ",
             geom=dict(pos=(512,200,0)),

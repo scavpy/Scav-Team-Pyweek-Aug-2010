@@ -9,11 +9,15 @@ from optparse import OptionParser
 import pyglet
 from tdgl.gl import tdgl_usual_setup
 
+from pygame import mixer
+
 options = None
 
 import monkey_patches
 
 def main():
+    mixer.init()
+    
     op = OptionParser("usage: %prog [options]")
     add = op.add_option
     add("--size",default="1024,768",

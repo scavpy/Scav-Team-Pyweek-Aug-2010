@@ -8,7 +8,7 @@ try:
     sys.path.insert(0, os.path.join(libdir,'tdgl.zip'))
     sys.path.insert(0, libdir)
     import pyglet.resource, pyglet.font
-    pyglet.resource.path = ["data", "data/models", "data/sound"]
+    pyglet.resource.path = ["data", "data/models"]
     pyglet.resource.reindex()
     pyglet.font.add_directory(os.path.join(here,"data/fonts"))
 except NameError:
