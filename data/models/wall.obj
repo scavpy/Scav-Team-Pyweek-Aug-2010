@@ -1,6 +1,6 @@
 # Blender3D v249 OBJ File: .wall.blend
 # www.blender3d.org
-mtllib .wall.mtl
+mtllib wall.mtl
 o hex
 v 0.500000 0.866025 0.300000
 v 1.000000 -0.000000 0.300000

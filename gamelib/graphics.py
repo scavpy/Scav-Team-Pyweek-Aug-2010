@@ -17,8 +17,12 @@ def hex_to_world_coords(col,row):
     return x,y
 
 TILE_OBJECTS = {
-    "#":objpart.get_obj("hex.obj"),
+    "#":objpart.get_obj("wall.obj"),
     "H":objpart.get_obj("hex.obj"),
+    "^":objpart.get_obj("nwall.obj"),
+    "v":objpart.get_obj("swall.obj"),
+    ">":objpart.get_obj("ewall.obj"),
+    "<":objpart.get_obj("wwall.obj"),
 }
 
 class CellType(object):

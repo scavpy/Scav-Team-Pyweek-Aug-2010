@@ -190,7 +190,7 @@ class GameScreen(Screen):
         with sv.compile_style():
             glEnable(GL_LIGHTING)
         lighting.light_position(self.light,(10,10,10,0))
-        lighting.light_colour(self.light,(1,1,1,1))
+        lighting.light_colour(self.light,(0.5,0.5,0.5,1))
         lighting.light_switch(self.light,True)
         self.append(sv)
         
