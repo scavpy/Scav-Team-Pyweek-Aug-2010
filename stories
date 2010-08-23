@@ -29,7 +29,7 @@ User Stories
    (scav) branch: movement, status: done
 
 8. The player cannot move into one of the occupied hexagons.
-   (scav) branch: collision, status: dev
+   (scav) branch: collision, status: done (AFL)
 
 9. Clicking the mouse fires a ball in the direction from the player to
    where the mouse click took place. (At this stage, the ball doesn't
