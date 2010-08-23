@@ -20,18 +20,22 @@ User Stories
 5. The movement keys will move the player around on the grid.
    (At this stage, don't bother about collision with walls or staying
    within the bounds of the grid.)
-   (Pressing ESC quits the game screen)
+   (scav) branch: movement, status: done
 
 6. The player turns to face the direction of movement.
+   (scav) branch: movement, status: done
   
 7. The camera remains centred on the player.
+   (scav) branch: movement, status: done
 
 8. The player cannot move into one of the occupied hexagons.
+   (scav) branch: collision, status: dev
 
 9. Clicking the mouse fires a ball in the direction from the player to
    where the mouse click took place. (At this stage, the ball doesn't
    do anything interesting, and disappears after a certain duration of
    travel.)
+   (Pressing ESC quits the game screen)
 
 10. The ball bounces off any occupied hexagons in a semi-realistic way.
 
