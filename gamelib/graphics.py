@@ -5,21 +5,26 @@ import pickle
 from tdgl.gl import *
 from tdgl import part, objpart
 
+import collision
+
 # vertical and horizontal spacing of hexagons
 Vspace = 3**0.5
 Vhalf = Vspace / 2
 
-hexcorners = [(1,0),(0.5,Vhalf),
-              (-0.5,Vhalf),(-1,0),
-              (-0.5,-Vhalf),(0.5,-Vhalf)]
-
-def hex_to_world_coords(u,v):
-    return u*1.5, v*Vspace + Vhalf * (u%2)
+hexcorners = [ (v.x, v.y) for v in collision.H_CORNER ]
+def hex_to_world_coords(col,row):
+    x,y,_ = collision.h_centre(col,row)
+    return x,y
 
 TILE_OBJECTS = {
     "#":objpart.get_obj("hex.obj"),
     "H":objpart.get_obj("hex.obj"),
 }
+
+class CellType(object):
+    def __init__(self,n,walkable=False):
+        self.n = n
+        self.walkable = walkable
 
 class HexagonField(part.Part):
     """A field of hexagonal tiles on a grid, where the 
@@ -29,6 +34,7 @@ class HexagonField(part.Part):
     def __init__(self,name="",level={},**kw):
         super(HexagonField,self).__init__(name,**kw)
         self.cells = {} # {(u,v):celltype}
+        self.obstacles = {}
         self.player_start = (0,0)
         self.build_dl(level)
 
@@ -40,24 +46,29 @@ class HexagonField(part.Part):
         and make display lists for each distinct kind of
         tile in the level"""
         self.celltypes = {}
-        self.celltypes[" "] = 0
+        self.celltypes[" "] = CellType(0,True)
         numtypes = 1
         rows = level.get("body",[])
         v = len(rows)
         for row in rows:
             v -= 1
             for u,cell in enumerate(row.split(",")):
-                if cell not in self.celltypes:
-                    self.celltypes[cell] = numtypes
+                ct = self.celltypes.get(cell)
+                if not ct:
+                    n = numtypes
+                    walk = cell[:1] in ("","E"," ","S")
+                    ct = self.celltypes[cell] = CellType(n,walk)
                     numtypes += 1
                     if cell == "S":
                         self.player_start = (u,v)
-                self.cells[u,v] = self.celltypes[cell]
+                self.cells[u,v] = self.celltypes[cell].n
+                if not ct.walkable:
+                    self.obstacles[u,v] = cell
         self.ndl = numtypes
         self.dlbase = glGenLists(self.ndl)
         # Compile display lists
-        for k,n in self.celltypes.items():
-            with gl_compile(self.dlbase + n):
+        for k,ct in self.celltypes.items():
+            with gl_compile(self.dlbase + ct.n):
                 # space or player start or enemy
                 if k[:1] in ("","E"," ","S"):
                     glLineWidth(1)
@@ -82,6 +93,11 @@ class HexagonField(part.Part):
                             glVertex2f(x,y)
                 else:
                     pass # TODO the rest
+
+    def obstacles_near(self,x,y):
+        return [(hc,hr,self.obstacles[hc,hr])
+                for hc,hr in collision.nearest_neighbours(x,y,2)
+                if (hc,hr) in self.obstacles]
 
     def setup_style(self):
         glEnable(GL_COLOR_MATERIAL)
