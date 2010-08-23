@@ -16,6 +16,11 @@ from tdgl.vec import Vec
 import graphics
 import main # for options
 
+MUSIC = {
+    "title":pyglet.resource.media("subterranean.ogg"),
+    "gameplay":None,
+    }
+
 class Screen(part.Group):
     _next = None
     _screen_styles = {
@@ -216,6 +221,8 @@ class GameScreen(Screen):
 class TitleScreen(Screen):
 
     def build_parts(self,**kw):
+        # Playing music in a common function between screens
+        MUSIC["title"].play()
         start_btn = panel.LabelPanel(
             "Start", text=" Start ",
             geom=dict(pos=(512,200,0)),
