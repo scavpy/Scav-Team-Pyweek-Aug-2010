@@ -50,6 +50,19 @@ def h_centre(hcol,hrow):
     """position vector of hexagon centre"""
     return Vec(hcol * 1.5, hrow * R3 + Sin60 * (hcol % 2))
 
+def nearest_neighbours(x,y,d=1):
+    """Yield hexagon grid coords for hexagons near point x,y
+    sorted in order of increasing centre distance.
+    d is hex grid distance to allow for (0,1,2 likely)"""
+    hcol = int((x / 1.5) + 0.5)
+    adjust = Sin60 * (hcol % 2)
+    hrow = int(((y - adjust) / R3) + 0.5)
+    here = Vec(x,y)
+    centres = sorted(((h_centre(hcol+i,hrow+j)-here).length(),hcol+i,hrow+j)
+               for i in range(-d,d+1)
+               for j in range(-d,d+1))
+    return ((hc,hr) for (dd,hc,hr) in centres)
+
 def line_segment_cross(P0,v0,P1,v1):
     """ solve:  P0 + m*v0 = P1 + n*v1,
      for m and n.
@@ -83,7 +96,7 @@ def line_segment_cross(P0,v0,P1,v1):
             n = -(y1 - y0)/(m * k0 * k1)
         else:
             q = k1/j1
-            m = ((y1 - y0) - q(x1 - x0)) / (k0 - q * j0)
+            m = ((y1 - y0) - q * (x1 - x0)) / (k0 - q * j0)
             n = -(x1 - y0) / (m * j0 * j1)
     except ArithmeticError:
         return float('inf'),float('inf')

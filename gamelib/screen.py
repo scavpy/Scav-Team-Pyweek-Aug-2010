@@ -14,6 +14,7 @@ from tdgl.viewpoint import OrthoView, SceneView
 from tdgl.vec import Vec
 
 import graphics
+import collision
 import main # for options
 
 class Screen(part.Group):
@@ -160,6 +161,7 @@ class GameScreen(Screen):
         player = Player(name="player",
             geom=dict(pos=(x,y,0)))
         self.player = player
+        self.hexfield = hf
         sv = SceneView("scene",[hf,player])
         sv.camera.look_at((x,y,0),10)
         sv.camera.look_from_spherical(87,-90,300)
@@ -203,14 +205,24 @@ class GameScreen(Screen):
         if self.keysdown:
             z = Vec(0,0)
             v = sum((self.movekeys.get(k,z) for k in self.keysdown),z) * ms * 0.01
-            player.pos = v + player.pos
-            self.camera.look_at(tuple(player.pos))
             dx,dy,dz = v
             if dx or dy:
                 a = degrees(atan2(dy,dx))
                 player.angle = a
                 if self.first_person:
                     self.camera.look_from_spherical(30,a + 180,20,200)
+                # See if player will collide with any hexagons
+                px,py,pz = player.pos
+                obstacles = self.hexfield.obstacles_near(px,py)
+                newpos = v + player.pos
+                for hc,hr,cell in obstacles:
+                    P = collision.collides(hc,hr,player.pos,0.8,v,collision.COLLIDE_POSITION)
+                    if P:
+                        newpos = P
+                        break
+                player.pos = newpos
+                self.camera.look_at(tuple(player.pos))
+
         self.step_contents(ms)
 
 class TitleScreen(Screen):

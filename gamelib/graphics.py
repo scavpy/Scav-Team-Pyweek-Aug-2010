@@ -94,12 +94,10 @@ class HexagonField(part.Part):
                 else:
                     pass # TODO the rest
 
-    def obstacles_near(self,u,v):
-        blank = CellType(0,True)
-        return [(u+i,v+j,self.obstacles[u+i,v+j])
-                for i in range(-2,+3)
-                for j in range(-2,+3)
-                if (u+i,v+j) in self.obstacles]
+    def obstacles_near(self,x,y):
+        return [(hc,hr,self.obstacles[hc,hr])
+                for hc,hr in collision.nearest_neighbours(x,y,2)
+                if (hc,hr) in self.obstacles]
 
     def setup_style(self):
         glEnable(GL_COLOR_MATERIAL)
