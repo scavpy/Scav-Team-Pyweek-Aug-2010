@@ -249,7 +249,7 @@ class TitleScreen(Screen):
     def pick(self,label):
         name = label.target._name
         if name == "Start":
-            with pyglet.resource.file("level01.lev") as lf:
+            with pyglet.resource.file("level01.lev","rb") as lf:
                 level = pickle.load(lf)
             self.exit_to(GameScreen, level=level)
         elif name == "Quit":
