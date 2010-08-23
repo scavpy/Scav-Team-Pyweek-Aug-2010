@@ -9,12 +9,10 @@
         and NOT Rotate x90
 """
 
-import part, texture, vec, picking
+import part, picking
 from tdgl.gl import *
 from pyglet import resource
 from weakref import WeakValueDictionary
-
-from vec import Vec
 
 import material
 
