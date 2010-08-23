@@ -2,8 +2,6 @@
    GameWindow is a pyglet window that runs a series of game screens
 
 """
-import gc
-import pprint
 import pyglet
 from tdgl.gl import tdgl_draw_parts
 import screen
