@@ -15,5 +15,54 @@ User Stories
 4. When I start playing the game, I will see a grid of hexagons
    representing the first game level, with the camera centred on a
    representation of the player.
-   (scav) branch: hexagons, status: dev
+   (scav) branch: hexagons, status: done
+
+5. The movement keys will move the player around on the grid.
+   (At this stage, don't bother about collision with walls or staying
+   within the bounds of the grid.)
+   (Pressing ESC quits the game screen)
+
+6. The player turns to face the direction of movement.
+  
+7. The camera remains centred on the player.
+
+8. The player cannot move into one of the occupied hexagons.
+
+9. Clicking the mouse fires a ball in the direction from the player to
+   where the mouse click took place. (At this stage, the ball doesn't
+   do anything interesting, and disappears after a certain duration of
+   travel.)
+
+10. The ball bounces off any occupied hexagons in a semi-realistic way.
+
+11. The ball destroys up to 3 normal coloured hexagons before disappearing.
+
+12. The ball kills the player too. The game screen exits to the score
+    screen, which in turn exits to the title screen.
+
+13. The player wins on reaching an exit hexagon. The game screen exits to a
+    victory screen, which exits to the title screen.
+
+14. Winning proceeds to the next level, unless there are no more levels,
+    then it goes to the victory screen. The level number is shown in the
+    top left of the screen.
+
+15. At the start of each level, some narrative text is overlaid on the
+    screen, until dismissed by a key press or mouse click. This should
+    be white text on alpha < 1 black.
+
+16. The title screen should play the title-page music.
+
+17. The game screen should play the in-game music.
+
+18. Destroying hexagons should increase the score, which will be shown
+    on the bottom right of the screen.
+
+19. Monsters will roam the grid. They move randomly or bounce around like
+    the ball.  Contact with the player kills the player. Contact with the
+    ball kills the monster.
+
+
+
+
 
