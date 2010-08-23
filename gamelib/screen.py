@@ -103,6 +103,19 @@ class ClockPart(part.Part):
 class Player(objpart.ObjPart):
     pass
 
+class Ball(objpart.ObjPart):
+    def __init__(self,velocity=(0,0),duration=1000,maxdestroy=3,**kw):
+        super(Ball,self).__init__('',**kw)
+        self.velocity = velocity
+        self.duration = duration
+        self.maxdestroy = maxdestroy
+
+    def step(self,ms):
+        self.duration -= ms
+        if self.duration < 0:
+            self._expired = True
+
+
 class GameScreen(Screen):
     _screen_styles = {
         "#level_indicator": {
@@ -112,9 +125,8 @@ class GameScreen(Screen):
             "bg_margin":10,"bg_radius":20, "bg_round:":0,
             "bd_margin":10,"bd_radius":20, "bd_round:":0,
             },
-        "#player" : {
-            "obj-filename":"crab.obj"
-            },
+        "#player":{ "obj-filename":"crab.obj" },
+        "Ball":{"obj-filename":"faceball.obj"},
         }
 
     def __init__(self,name="",level=None,**kw):
@@ -189,8 +201,12 @@ class GameScreen(Screen):
         """ Click to fire """
         if button != 1:
             return
-        #STUB exit on click
-        self.exit_to(TitleScreen)
+        print "click at",(x,y)
+        ballx,bally,_ = self.player.pos
+        ball = Ball(velocity=(0,0,0),
+                 geom=dict(pos=(ballx,bally,0.1)))
+        ball.restyle(True)
+        self["scene"].append(ball)
 
     def keydown_playing(self,sym,mods):
         self.keysdown.add(sym)
@@ -203,6 +219,8 @@ class GameScreen(Screen):
                 self.first_person = True
         elif sym == pygletkey.F4:
             collision.DEBUG = not collision.DEBUG
+        elif sym == pygletkey.ESCAPE:
+            self.exit_to(TitleScreen)
 
     def keyup_playing(self,sym,mods):
         try:
