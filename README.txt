@@ -11,6 +11,7 @@ DEPENDENCIES:
 You might need to install some of these before running the game:
 
   Python:     http://www.python.org/
+  Pygame:     http://www.pygame.org/
   Pyglet:     http://www.pyglet.org/
 
 

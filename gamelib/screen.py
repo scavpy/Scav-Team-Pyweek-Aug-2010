@@ -8,6 +8,8 @@ import pyglet
 from pyglet.window import key as pygletkey
 from math import atan2,degrees
 
+from pygame import mixer
+
 from tdgl.gl import *
 from tdgl import part, picking, panel, stylesheet, lighting, objpart
 from tdgl.viewpoint import OrthoView, SceneView
@@ -16,6 +18,11 @@ from tdgl.vec import Vec
 import graphics
 import collision
 import main # for options
+
+MUSIC = {
+    "title":"data/sound/subterranean.ogg",
+    "gameplay":None,
+    }
 
 class Screen(part.Group):
     _next = None
@@ -35,6 +42,7 @@ class Screen(part.Group):
         self.build_parts(**kw)
         stylesheet.load(self._screen_styles)
         self.restyle(True)
+        self.music = None
 
     @staticmethod
     def screen_order():
@@ -228,6 +236,9 @@ class GameScreen(Screen):
 class TitleScreen(Screen):
 
     def build_parts(self,**kw):
+        # Playing music in a common function between screens
+        mixer.music.load(MUSIC.get("title"))
+        mixer.music.play(-1)
         start_btn = panel.LabelPanel(
             "Start", text=" Start ",
             geom=dict(pos=(512,200,0)),
