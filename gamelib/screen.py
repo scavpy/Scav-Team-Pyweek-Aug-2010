@@ -39,6 +39,7 @@ class Screen(part.Group):
         self.build_parts(**kw)
         stylesheet.load(self._screen_styles)
         self.restyle(True)
+        self.music = None
 
     @staticmethod
     def screen_order():
@@ -222,7 +223,7 @@ class TitleScreen(Screen):
 
     def build_parts(self,**kw):
         # Playing music in a common function between screens
-        MUSIC["title"].play()
+        self.music = MUSIC.get("title")
         start_btn = panel.LabelPanel(
             "Start", text=" Start ",
             geom=dict(pos=(512,200,0)),
