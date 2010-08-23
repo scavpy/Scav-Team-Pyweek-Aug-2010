@@ -201,6 +201,8 @@ class GameScreen(Screen):
             else:
                 self.camera.look_from_spherical(30,self.player.angle + 180,20,200)
                 self.first_person = True
+        elif sym == pygletkey.F4:
+            collision.DEBUG = not collision.DEBUG
 
     def keyup_playing(self,sym,mods):
         try:
@@ -224,7 +226,7 @@ class GameScreen(Screen):
                 obstacles = self.hexfield.obstacles_near(px,py)
                 newpos = v + player.pos
                 for hc,hr,cell in obstacles:
-                    P = collision.collides(hc,hr,player.pos,0.8,v,collision.COLLIDE_POSITION)
+                    P = collision.collides(hc,hr,player.pos,0.49,v,collision.COLLIDE_POSITION)
                     if P:
                         newpos = P
                         break

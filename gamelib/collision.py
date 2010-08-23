@@ -46,6 +46,8 @@ H_CORNER = [Vec(1,0),Vec(0.5,Sin60),Vec(-0.5,Sin60),
 H_SIDE = [H_CORNER[(i+1) % 6] - v for i,v in enumerate(H_CORNER)]
 H_NORMAL = [Vec(v.y,-v.x) for v in H_SIDE]
 
+DEBUG = False
+
 def h_centre(hcol,hrow):
     """position vector of hexagon centre"""
     return Vec(hcol * 1.5, hrow * R3 + Sin60 * (hcol % 2))
@@ -65,39 +67,35 @@ def nearest_neighbours(x,y,d=1):
 
 def line_segment_cross(P0,v0,P1,v1):
     """ solve:  P0 + m*v0 = P1 + n*v1,
+     ( where v0 = (j0,k0), v1 = (j1,k1) )
      for m and n.
      return m,n.   return (inf,inf) if vectors parallel
 
-     m(j0) - n(j1) = x1 - x0
-     m(k0) - n(k1) = y1 - y0
-
-     if j1 is zero:
-         if j0, k0 or k1 are zero at that point,give up.
-         m = (x1 - x0) / j0
-         n = -(y1 - y0)/(m k0 k1)
-     else:
-         Try to eliminate n:
-         q = k1/j1
-         m(k0 - q j0) = (y1 - y0) - q(x1 - x0)
-         m = ((y1 - y0) - q(x1 - x0))/(k0 - q j0)
-         n = -(x1 -x0)(m j0 j1)
-
-    Or something...
+     Solve the system of equations:
+        m   n 
+     [ j0 -j1 | x1-x0 ]  (eq1)
+     [ k0 -k1 | y1-y0 ]  (eq2)     
     """
     j0,k0,_ = v0
     j1,k1,_ = v1
     x0,y0,_ = P0
     x1,y1,_ = P1
+    eq1 = Vec(j0,-j1,x1-x0)
+    eq2 = Vec(k0,-k1,y1-y0)
     def zeroish(x):
         return abs(x) < 0.000001
     try:
-        if zeroish(j1):
-            m = (x1 - x0) / j0
-            n = -(y1 - y0)/(m * k0 * k1)
+        if zeroish(k0):
+            # try to eliminate m from eq2
+            eq3 = eq2 - eq1*(k0/j0)
         else:
-            q = k1/j1
-            m = ((y1 - y0) - q * (x1 - x0)) / (k0 - q * j0)
-            n = -(x1 - y0) / (m * j0 * j1)
+            # try to eliminate m from eq1
+            eq3 = eq1 - eq2*(j0/k0)
+        n = eq3.z/eq3.y
+        if zeroish(j0):
+            m = (eq2.z - eq2.y*n)/k0
+        else:
+            m = (eq1.z - eq1.y*n)/j0
     except ArithmeticError:
         return float('inf'),float('inf')
     return m,n
@@ -138,27 +136,50 @@ def collides(hcol,hrow,C,r,v=Vec(0,0),detail=COLLIDE_BBOX):
     for i, n in enumerate(H_NORMAL):
         dot = n.dot(v)
         if (dot >= 0):
+            if DEBUG: print " ignoring side",i
             continue  # no colliding from inside the hexagon!
         # projection of v onto normal (points towards hexagon)
         towards_side = (n * dot).normalise()
+        if DEBUG: print " vector towards side", towards_side
         # nearest point on circle to the side
         Q0 = C0 + towards_side * r
+        if DEBUG: print " point on circle", Q0
         # Solve line segment crossing
         mu,nu = line_segment_cross(Q0,v,H_CORNER[i],H_SIDE[i])
-        # nu outside [0,1] if nearest point will miss the side
+        if DEBUG: print " line crossing",mu,"along velocity vector,",nu,"along side",i
         # mu > 1 if nearest point won't reach the side
-        if nu < 0 or nu > 1 or mu > 1:
+        if mu > 1:
+            if DEBUG: print " mu =",mu,"(too far away)"
             continue
+        # nu outside [0,1] if nearest point will miss the side
+        if nu < 0 or nu > 1:
+            # but it could still hit the corner            
+            if (C1 - H_CORNER[i]).length() < r:
+                n = H_CORNER[i] # normal is away from corner
+                Q1 = n
+                if DEBUG: print " hits corner at", Q1
+                C2 = Q1 + n * r
+                sidetest = True
+                break
+            # OK, never mind. It missed this side.
+            continue
+        # Hit the side
         sidetest = True
         Q1 = Q0 + v * mu # collision point
+        if DEBUG: print " collides at",Q1
         C2 = Q1 + n * r  # centre of circle at collision point
+        if DEBUG: print " circle centre at",C2
         break
     if not sidetest:
         return False
     if detail == COLLIDE_POSITION:
         return C2 + H  # transform back to actual coords
 
-    #calculate vector u, same magnitude as v but reflected
-    u = n * 2 - v
-    ubounce = u.normalise() * (1 - mu)
+    # Calculate vector u, same magnitude as v but reflected:
+    # Find a midpoint, above Q1 by height of projection of v on n
+    M = Q1 - v.proj(n)
+    # Find a point on the opposite side of M from (Q1 - v)
+    u = M*2 - Q1*2 + v
+    if DEBUG: print " reflection vector is",u
+    ubounce = u * (1 - mu)
     return C2 + ubounce + H, u
