@@ -22,6 +22,7 @@ class GameWindow(pyglet.window.Window):
         s.step(ms)
         if s.expired():
             try:
+                del self.this_screen
                 s = screen.next()
                 s.resize(*self.get_size())
                 self.this_screen = s
