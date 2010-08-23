@@ -6,6 +6,7 @@ The game is divided into Screens
 import pickle
 import pyglet
 from pyglet.window import key as pygletkey
+from math import atan2,degrees
 
 from tdgl.gl import *
 from tdgl import part, picking, panel, stylesheet, lighting, objpart
@@ -119,9 +120,9 @@ class GameScreen(Screen):
             pygletkey.S: Vec(0,-1),
             }
         self.keysdown = set()
+        self.first_person = False
             
     def __del__(self):
-        print "releasing light",self.light
         lighting.release_light(self.light)
 
     def cleanup(self):
@@ -162,7 +163,7 @@ class GameScreen(Screen):
         sv = SceneView("scene",[hf,player])
         sv.camera.look_at((x,y,0),10)
         sv.camera.look_from_spherical(87,-90,300)
-        sv.camera.look_from_spherical(87,-90,100,30)
+        sv.camera.look_from_spherical(87,-90,100,1000)
         self.camera = sv.camera
         with sv.compile_style():
             glEnable(GL_LIGHTING)
@@ -183,6 +184,13 @@ class GameScreen(Screen):
 
     def keydown_playing(self,sym,mods):
         self.keysdown.add(sym)
+        if sym == pygletkey.F3:
+            if self.first_person:
+                self.camera.look_from_spherical(87,-90,100,200)
+                self.first_person = False
+            else:
+                self.camera.look_from_spherical(30,self.player.angle + 180,20,200)
+                self.first_person = True
 
     def keyup_playing(self,sym,mods):
         try:
@@ -197,6 +205,12 @@ class GameScreen(Screen):
             v = sum((self.movekeys.get(k,z) for k in self.keysdown),z) * ms * 0.01
             player.pos = v + player.pos
             self.camera.look_at(tuple(player.pos))
+            dx,dy,dz = v
+            if dx or dy:
+                a = degrees(atan2(dy,dx))
+                player.angle = a
+                if self.first_person:
+                    self.camera.look_from_spherical(30,a + 180,20,200)
         self.step_contents(ms)
 
 class TitleScreen(Screen):
