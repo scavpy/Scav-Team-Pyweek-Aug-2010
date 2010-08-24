@@ -6,7 +6,7 @@ The game is divided into Screens
 import pickle
 import pyglet
 from pyglet.window import key as pygletkey
-from math import atan2,degrees
+from math import atan2,degrees,radians,sin,cos
 
 from pygame import mixer
 
@@ -106,7 +106,7 @@ class Player(objpart.ObjPart):
 class Ball(objpart.ObjPart):
     def __init__(self,velocity=(0,0),duration=1000,maxdestroy=3,**kw):
         super(Ball,self).__init__('',**kw)
-        self.velocity = velocity
+        self.velocity = Vec(velocity)
         self.duration = duration
         self.maxdestroy = maxdestroy
 
@@ -134,11 +134,21 @@ class GameScreen(Screen):
         self.light = lighting.claim_light()
         super(GameScreen,self).__init__(name,**kw)
         self.set_mode("playing")
+        Sin60 = collision.Sin60
         self.movekeys = {
+            # Gamer keys
             pygletkey.A: Vec(-1,0),
             pygletkey.D: Vec(1,0),
             pygletkey.W: Vec(0,1),
             pygletkey.S: Vec(0,-1),
+
+            # Hexagon around J
+            pygletkey.H: Vec(-1,0),
+            pygletkey.U: Vec(-0.5,Sin60),
+            pygletkey.I: Vec(0.5,Sin60),
+            pygletkey.K: Vec(1,0),
+            pygletkey.M: Vec(0.5,-Sin60),
+            pygletkey.N: Vec(-0.5,-Sin60),
             }
         self.keysdown = set()
         self.first_person = False
@@ -146,22 +156,8 @@ class GameScreen(Screen):
     def __del__(self):
         lighting.release_light(self.light)
 
-    def cleanup(self):
-        """ remove attributes that may have circular references
-        to self (e.g. bound methods of same instance) """
-        try:
-            del self.click
-            del self.keyup
-            del self.step
-            del self.keydown
-        except NameError:
-            pass
-
     def set_mode(self,mode):
-        for handler in ["keydown","keyup","click","step"]:
-            f = getattr(self,handler + "_" + mode)
-            if f:
-                setattr(self,handler,f)
+        self.mode = mode
 
     def build_parts(self,**kw):
         lev = panel.LabelPanel(
@@ -182,7 +178,8 @@ class GameScreen(Screen):
             geom=dict(pos=(x,y,0)))
         self.player = player
         self.hexfield = hf
-        sv = SceneView("scene",[hf,player])
+        balls = part.Group("balls",[])
+        sv = SceneView("scene",[hf,player,balls])
         sv.camera.look_at((x,y,0),10)
         sv.camera.look_from_spherical(87,-90,300)
         sv.camera.look_from_spherical(87,-90,100,1000)
@@ -190,25 +187,29 @@ class GameScreen(Screen):
         with sv.compile_style():
             glEnable(GL_LIGHTING)
         lighting.light_position(self.light,(10,10,10,0))
-        lighting.light_colour(self.light,(0.5,0.5,0.5,1))
+        lighting.light_colour(self.light,(1,1,1,1))
         lighting.light_switch(self.light,True)
         self.append(sv)
         
     def setup_style(self):
         lighting.setup()
 
-    def click_playing(self,x,y,button,mods):
+    def add_ball(self,velocity):
+        ball = Ball(velocity=velocity)
+        ballx,bally,_ = self.player.pos
+        ball.pos = (ballx,bally,0.1)
+        ball.restyle(True)
+        self["balls"].append(ball)
+             
+    def click(self,x,y,button,mods):
         """ Click to fire """
         if button != 1:
             return
-        print "click at",(x,y)
-        ballx,bally,_ = self.player.pos
-        ball = Ball(velocity=(0,0,0),
-                 geom=dict(pos=(ballx,bally,0.1)))
-        ball.restyle(True)
-        self["scene"].append(ball)
+        a = radians(self.player.angle)
+        v = Vec(cos(a),sin(a)) * 0.01 # per ms
+        self.add_ball(v)
 
-    def keydown_playing(self,sym,mods):
+    def keydown(self,sym,mods):
         self.keysdown.add(sym)
         if sym == pygletkey.F3:
             if self.first_person:
@@ -221,24 +222,42 @@ class GameScreen(Screen):
             collision.DEBUG = not collision.DEBUG
         elif sym == pygletkey.ESCAPE:
             self.exit_to(TitleScreen)
+        elif sym == pygletkey.RETURN:
+            a = radians(self.player.angle)
+            v = Vec(cos(a),sin(a)) * 0.01 # per ms
+            self.add_ball(v)
 
-    def keyup_playing(self,sym,mods):
+    def keyup(self,sym,mods):
         try:
             self.keysdown.remove(sym)
         except KeyError:
             pass # never mind
 
-    def step_playing(self,ms):
+    def step_player(self,ms):
         player = self.player
         if self.keysdown:
-            z = Vec(0,0)
-            v = sum((self.movekeys.get(k,z) for k in self.keysdown),z) * ms * 0.01
-            dx,dy,dz = v
-            if dx or dy:
-                a = degrees(atan2(dy,dx))
+            if self.first_person:
+                a = self.player.angle
+                if pygletkey.LEFT in self.keysdown:
+                    a += 10
+                if pygletkey.RIGHT in self.keysdown:
+                    a -= 10
+                theta = radians(a)
+                if pygletkey.UP in self.keysdown:
+                    v = Vec(cos(theta),sin(theta)) * ms * 0.01
+                else:
+                    v = Vec(0,0)
+                dx,dy,dz = v
                 player.angle = a
-                if self.first_person:
-                    self.camera.look_from_spherical(30,a + 180,20,200)
+                self.camera.look_from_spherical(30,a + 180,20,200)
+            else:
+                z = Vec(0,0)
+                v = sum((self.movekeys.get(k,z) for k in self.keysdown),z).normalise() * ms * 0.01
+                dx,dy,dz = v
+                if dx or dy:
+                    a = degrees(atan2(dy,dx))
+                    player.angle = a
+            if dx or dy:
                 # See if player will collide with any hexagons
                 px,py,pz = player.pos
                 obstacles = self.hexfield.obstacles_near(px,py)
@@ -251,6 +270,15 @@ class GameScreen(Screen):
                 player.pos = newpos
                 self.camera.look_at(tuple(player.pos))
 
+    def step_balls(self,ms):
+        for ball in self["balls"].contents:
+            v = ball.velocity * ms
+            ball.pos = v + ball.pos
+            # TODO handle collision
+
+    def step(self,ms):
+        self.step_player(ms)
+        self.step_balls(ms)
         self.step_contents(ms)
 
 class TitleScreen(Screen):
