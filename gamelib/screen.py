@@ -281,8 +281,16 @@ class GameScreen(Screen):
     def step_balls(self,ms):
         for ball in self["balls"].contents:
             v = ball.velocity * ms
-            ball.pos = v + ball.pos
-            # TODO handle collision
+            bx,by,bz = pos = ball.pos
+            newpos = v + pos
+            obstacles = self.hexfield.obstacles_near(bx,by)
+            for hc,hr,cell in obstacles:
+                P = collision.collides(hc,hr,pos,0.49,v,collision.COLLIDE_REBOUND)
+                if P:
+                    newpos, bv_times_ms = P
+                    ball.velocity = bv_times_ms * (1/ms)
+                    break
+            ball.pos = newpos
 
     def step(self,ms):
         self.step_player(ms)

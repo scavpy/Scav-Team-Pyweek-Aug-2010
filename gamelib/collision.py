@@ -181,5 +181,5 @@ def collides(hcol,hrow,C,r,v=Vec(0,0),detail=COLLIDE_BBOX):
     # Find a point on the opposite side of M from (Q1 - v)
     u = M*2 - Q1*2 + v
     if DEBUG: print " reflection vector is",u
-    ubounce = u * (1 - mu)
+    ubounce = u * min(1 - mu,1)
     return C2 + ubounce + H, u
