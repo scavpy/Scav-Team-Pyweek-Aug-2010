@@ -1,5 +1,6 @@
 # Blender3D v249 OBJ File: .hex.blend
 # www.blender3d.org
+mtllib materials.mtl
 o hex
 v 0.500000 0.866025 0.000000
 v 1.000000 -0.000000 0.000000
@@ -20,7 +21,7 @@ vn -0.640211 -0.369626 0.673429
 vn -0.640211 0.369626 0.673429
 vn 0.000000 0.739252 0.673429
 vn 0.000000 -0.000000 1.000000
-usemtl (null)
+usemtl White
 s off
 f 1//1 7//1 8//1 2//1
 f 2//2 8//2 9//2 3//2
