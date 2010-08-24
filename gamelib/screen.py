@@ -36,7 +36,7 @@ class Screen(part.Group):
             "bd_margin":18,"bd_radius":42, "bd_round:":0,
             },
         "LabelPanel": { "font":"ExperiMental" },
-        "LabelPanel.storytext": {"font-size":24},
+        "LabelPanel.storytext": {"font_size":24},
         }
 
     def __init__(self,name="",**kw):

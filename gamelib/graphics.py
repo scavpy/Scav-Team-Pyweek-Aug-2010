@@ -187,5 +187,3 @@ class ScreenFrame(viewpoint.OrthoView):
         lab = self[name]
         lab.text = text.format(*args)
         lab.prepare()
-        
-        
