@@ -131,55 +131,35 @@ def collides(hcol,hrow,C,r,v=Vec(0,0),detail=COLLIDE_BBOX):
     if detail == COLLIDE_CIRCLE:
         return True
 
-    # Now the hard maths
-    sidetest = False
-    for i, n in enumerate(H_NORMAL):
-        dot = n.dot(v)
-        if (dot >= 0):
-            if DEBUG: print " ignoring side",i
-            continue  # no colliding from inside the hexagon!
-        # projection of v onto normal (points towards hexagon)
-        towards_side = (n * dot).normalise()
-        if DEBUG: print " vector towards side", towards_side
-        # nearest point on circle to the side
-        Q0 = C0 + towards_side * r
-        if DEBUG: print " point on circle", Q0
-        # Solve line segment crossing
-        mu,nu = line_segment_cross(Q0,v,H_CORNER[i],H_SIDE[i])
-        if DEBUG: print " line crossing",mu,"along velocity vector,",nu,"along side",i
-        # mu > 1 if nearest point won't reach the side
-        if mu > 1:
-            if DEBUG: print " mu =",mu,"(too far away)"
-            continue
-        # nu outside [0,1] if nearest point will miss the side
-        if nu < 0 or nu > 1:
-            # but it could still hit the corner            
-            if (C1 - H_CORNER[i]).length() < r:
-                n = H_CORNER[i] # normal is away from corner
-                Q1 = n
-                if DEBUG: print " hits corner at", Q1
-                C2 = Q1 + n * r
-                sidetest = True
-                break
-            # OK, never mind. It missed this side.
-            continue
-        # Hit the side
-        sidetest = True
-        Q1 = Q0 + v * mu # collision point
-        if DEBUG: print " collides at",Q1
-        C2 = Q1 + n * r  # centre of circle at collision point
-        if DEBUG: print " circle centre at",C2
-        break
-    if not sidetest:
-        return False
-    if detail == COLLIDE_POSITION:
-        return C2 + H  # transform back to actual coords
+    # Push the circle away to the edge of the bounding
+    # circle of the hexagon.
+    n = C1.normalise()
+    C2 = n * (1+r)
 
-    # Calculate vector u, same magnitude as v but reflected:
-    # Find a midpoint, above Q1 by height of projection of v on n
-    M = Q1 - v.proj(n)
-    # Find a point on the opposite side of M from (Q1 - v)
-    u = M*2 - Q1*2 + v
-    if DEBUG: print " reflection vector is",u
-    ubounce = u * min(1 - mu,1)
-    return C2 + ubounce + H, u
+    if detail == COLLIDE_POSITION:
+        return C2 + H
+
+    # Find hexagon normal nearest to the direction of the circle
+    nx,ny,_ = n
+    dots = sorted((abs(1.0 - v.dot(n)),i)
+                   for (i,v) in enumerate(H_NORMAL))
+    _,i = dots[0]
+    # Real normal at hexagon side...
+    n = H_NORMAL[i]
+
+    # Calculate bounce vector...
+
+    # Portion of intended distance still to travel
+    speed = v.length()
+    v1 = C2 - C0
+    remainder = max(0.01,speed - v1.length())
+    # Midpoint M is above the collision point 
+    M = C2 - v1.proj(n)
+    # C3 is opposite C0 through the midpoint M
+    C3 = C0 + (M - C0)*2
+    # Direction
+    v2 = (C3 - C2).normalise()
+    C2 += v2 * remainder
+    return C2 + H, v2 * speed
+    
+                  
