@@ -40,6 +40,7 @@ class HexagonField(part.Part):
         self.cells = {} # {(u,v):celltype}
         self.obstacles = {}
         self.player_start = (0,0)
+        self.player_exit = (1,1)
         self.build_dl(level)
 
     def __del__(self):
@@ -65,6 +66,8 @@ class HexagonField(part.Part):
                     numtypes += 1
                     if cell == "S":
                         self.player_start = (u,v)
+                    elif cell == "X":
+                        self.player_exit = (u,v)
                 self.cells[u,v] = self.celltypes[cell].n
                 if not ct.walkable:
                     self.obstacles[u,v] = cell

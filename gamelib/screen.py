@@ -35,6 +35,7 @@ class Screen(part.Group):
             "bd_margin":18,"bd_radius":42, "bd_round:":0,
             },
         "LabelPanel": { "font":"ExperiMental" },
+        "LabelPanel.storytext": {"font-size":24},
         }
 
     def __init__(self,name="",**kw):
@@ -101,10 +102,13 @@ class ClockPart(part.Part):
             self.clock.draw()
 
 class Player(objpart.ObjPart):
+    _default_geom = {'radius':0.49}
     pass
 
 class Ball(objpart.ObjPart):
-    def __init__(self,velocity=(0,0),duration=10000,maxdestroy=3,**kw):
+    _default_geom = {'radius':0.2}
+
+    def __init__(self,velocity=(0,0),duration=6000,maxdestroy=3,**kw):
         super(Ball,self).__init__('',**kw)
         self.velocity = Vec(velocity)
         self.duration = duration
@@ -118,7 +122,7 @@ class Ball(objpart.ObjPart):
 
 class GameScreen(Screen):
     _screen_styles = {
-        "#level_indicator": {
+        "LabelPanel.onframe": {
             "bg":(0.6,0.5,0.1,1), "fg":(1,1,1,1),
             "font_size":14, "font":"Courier",
             "border":2, "bd":(1,1,1,1),
@@ -129,8 +133,13 @@ class GameScreen(Screen):
         "Ball":{"obj-filename":"faceball.obj"},
         }
 
-    def __init__(self,name="",level=None,**kw):
+    def __init__(self,name="",level=None,levelnum=1,score=0,**kw):
+        if not level:
+            level = self.find_level(levelnum)
         self.level = level
+        self.levelnum = levelnum
+
+        self.score = score
         self.light = lighting.claim_light()
         super(GameScreen,self).__init__(name,**kw)
         self.set_mode("playing")
@@ -164,12 +173,29 @@ class GameScreen(Screen):
     def set_mode(self,mode):
         self.mode = mode
 
+    def find_level(self,levelnum):
+        fname = "level{0:02}.lev".format(levelnum)
+        try:
+            with pyglet.resource.file(fname,"rb") as lf:
+                return pickle.load(lf)
+        except pyglet.resource.ResourceNotFoundException:
+            return None
+
     def build_parts(self,**kw):
+        levname = self.level.get("name","Level")
         lev = panel.LabelPanel(
             "level_indicator",
-            text="Level 01",multiline="True",
-            geom=dict(pos=(60,730,0)))                
-        ov = OrthoView("frame",[lev])
+            text="{0} ({1})".format(levname,self.levelnum),
+            style_classes=['onframe'])
+        w,h = lev.content_size()
+        lev.pos = (w//2+16,768-h,0)
+        spanel = panel.LabelPanel(
+            "score",
+            text="{0:05}".format(self.score),
+            style_classes=['onframe'])
+        w,h = spanel.content_size()
+        spanel.pos = (1024-w//2-16,h-8,0)
+        ov = OrthoView("frame",[lev,spanel])
         with ov.compile_style():
             glClearColor(0,0,0,0)
             glDisable(GL_LIGHTING)
@@ -178,9 +204,10 @@ class GameScreen(Screen):
         self.append(ov)
         hf = graphics.HexagonField("hexfield",self.level)
         pu,pv = hf.player_start
+        self.player_exit = hf.player_exit
         x,y = graphics.hex_to_world_coords(pu,pv)
         player = Player(name="player",
-            geom=dict(pos=(x,y,0)))
+            geom=dict(pos=(x,y,0),radius=0.49))
         self.player = player
         self.hexfield = hf
         balls = part.Group("balls",[])
@@ -199,10 +226,18 @@ class GameScreen(Screen):
     def setup_style(self):
         lighting.setup()
 
+    def inc_score(self,points):
+        self.score += points
+        spanel = self["score"]
+        spanel.text = "{0:05}".format(self.score)
+        spanel.prepare()
+
     def add_ball(self,velocity):
-        ball = Ball(velocity=velocity)
-        ballx,bally,_ = self.player.pos
-        ball.pos = (ballx,bally,0.1)
+        r = 0.2
+        ball = Ball(velocity=velocity,geom=dict(radius=r))
+        player = self.player
+        pr = player.getgeom('radius',0.49)
+        ball.pos = velocity.normalise() * (r + pr + 0.1) + player.pos
         ball.restyle(True)
         self["balls"].append(ball)
              
@@ -233,7 +268,7 @@ class GameScreen(Screen):
         elif sym == pygletkey.F4:
             collision.DEBUG = not collision.DEBUG
         elif sym == pygletkey.ESCAPE:
-            self.exit_to(TitleScreen)
+            self.player_die("boredom")
         elif sym == pygletkey.RETURN:
             a = radians(self.player.angle)
             v = Vec(cos(a),sin(a)) * 0.01 # per ms
@@ -274,30 +309,50 @@ class GameScreen(Screen):
                 px,py,pz = player.pos
                 obstacles = self.hexfield.obstacles_near(px,py)
                 newpos = v + player.pos
+                r = player.getgeom('radius',0.49)
                 for hc,hr,cell in obstacles:
-                    P = collision.collides(hc,hr,player.pos,0.49,v,collision.COLLIDE_POSITION)
+                    P = collision.collides(hc,hr,player.pos,r,v,collision.COLLIDE_POSITION)
                     if P:
                         newpos = P
                         break
                 player.pos = newpos
                 self.camera.look_at(tuple(player.pos))
+                # See if player has escaped
+                phex = collision.nearest_neighbours(newpos.x,newpos.y,0).next()
+                if phex == self.player_exit:
+                    level = self.find_level(self.levelnum+1)
+                    if level:
+                        self.exit_to(GameScreen,score=self.score,level=level,levelnum=self.levelnum+1)
+                    else:
+                        self.exit_to(VictoryScreen,score=self.score)
 
     def step_balls(self,ms):
+        player = self.player
+        pr = player.getgeom('radius',0.49)
+        ppos = player.pos
         for ball in self["balls"].contents:
             v = ball.velocity * ms
             bx,by,bz = pos = ball.pos
             newpos = v + pos
+            r = ball.getgeom('radius',0.2)
             obstacles = self.hexfield.obstacles_near(bx,by)
             for hc,hr,cell in obstacles:
-                P = collision.collides(hc,hr,pos,0.49,v,collision.COLLIDE_REBOUND)
+                P = collision.collides(hc,hr,pos,r,v,collision.COLLIDE_REBOUND)
                 if P:
                     newpos, bv_times_ms = P
                     ball.velocity = bv_times_ms * (1/ms)
                     if ball.maxdestroy > 0:
-                        if self.hexfield.destroy(hc,hr):
+                        points = self.hexfield.destroy(hc,hr)
+                        if points:
                             ball.maxdestroy -= 1
+                            self.inc_score(points)
                     break
             ball.pos = newpos
+            if (ball.pos - ppos).length() < (r + pr):
+                self.player_die("ball trauma")
+
+    def player_die(self,died_of=""):
+        self.exit_to(ScoreScreen,score=self.score,died_of=died_of)
 
     def step(self,ms):
         if self.reload > 0:
@@ -333,13 +388,91 @@ class TitleScreen(Screen):
     def pick(self,label):
         name = label.target._name
         if name == "Start":
-            with pyglet.resource.file("level01.lev","rb") as lf:
-                level = pickle.load(lf)
-            self.exit_to(GameScreen, level=level)
+            self.exit_to(GameScreen)
         elif name == "Quit":
             self.exit_to(None)
-        else:
-            print label
+
+class VictoryScreen(Screen):
+    victory_text = """After such a terrible ordeal, you creep out
+into the sunlight, and make your weary way
+home, hoping never again to see another ball
+or hexagon in your life..."""
+    def __init__(self,score,**kw):
+        self.score = score
+        super(VictoryScreen,self).__init__(**kw)
+
+    def build_parts(self,**kw):
+        mixer.music.stop()
+        pn = panel.LabelPanel(
+            "the_end", text=self.victory_text,
+            geom=dict(pos=(512,400,0),
+                      text_width=800),
+            style_classes=['storytext'])
+        ok_btn = panel.LabelPanel(
+            "ok", text=" Finally! ",
+            geom=dict(pos=(512,100,0)),
+            style_classes=['button'])
+        ov = OrthoView(
+            "ortho", [pn,ok_btn],
+            geom=dict(left=0,right=1024,top=768,bottom=0))
+        with ov.compile_style():
+            glClearColor(0.1,0.6,0.1,0)
+            glDisable(GL_LIGHTING)
+        self.append(ov)
+        
+    def pick(self,label):
+        name = label.target._name
+        if name == "ok":
+            self.exit_to(ScoreScreen,score=self.score)
+
+class ScoreScreen(Screen):
+    _screen_styles = {
+        "LabelPanel.#score": {
+            "bg":None, "fg":(1,1,1,1),
+            "font_size":64,
+            },
+        "LabelPanel.#coroners_report": {
+            "bg":(0.9,0.9,0.8,1),"fg":(0,0,0,1),
+            "bg_margin":20,
+            "font":"Courier",
+            "font_size":20 },
+        }
+    def __init__(self,score,died_of="",**kw):
+        self.score = score
+        self.died_of = died_of
+        super(ScoreScreen,self).__init__(**kw)
+        
+    def build_parts(self,**kw):
+        mixer.music.stop()
+        pn = panel.LabelPanel(
+            "score", text="Your Score: {0}".format(self.score),
+            geom=dict(pos=(512,600,0)))
+        ok_btn = panel.LabelPanel(
+            "ok", text=" OK ",
+            geom=dict(pos=(512,100,0)),
+            style_classes=['button'])
+        ov = OrthoView(
+            "ortho", [pn,ok_btn],
+            geom=dict(left=0,right=1024,top=768,bottom=0))
+        if self.died_of:
+            text = ("CORONER'S REPORT\n"
+                    "----------------\n"
+                    "Cause of death: {0}").format(self.died_of)
+            CoD = panel.LabelPanel(
+                "coroners_report",
+                text=text,
+                geom=dict(pos=(512,300,0),
+                          text_width=280))
+            ov.append(CoD)
+        with ov.compile_style():
+            glClearColor(0.1,0,0.1,0)
+            glDisable(GL_LIGHTING)
+        self.append(ov)
+        
+    def pick(self,label):
+        name = label.target._name
+        if name == "ok":
+            self.exit_to(TitleScreen)
 
 # Initialisation
 Screen.set_next(TitleScreen)
