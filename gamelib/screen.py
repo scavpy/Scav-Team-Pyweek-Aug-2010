@@ -35,6 +35,7 @@ class Screen(part.Group):
             "bd_margin":18,"bd_radius":42, "bd_round:":0,
             },
         "LabelPanel": { "font":"ExperiMental" },
+        "LabelPanel.storytext": {"font-size":24},
         }
 
     def __init__(self,name="",**kw):
@@ -121,7 +122,7 @@ class Ball(objpart.ObjPart):
 
 class GameScreen(Screen):
     _screen_styles = {
-        "#level_indicator": {
+        "LabelPanel.onframe": {
             "bg":(0.6,0.5,0.1,1), "fg":(1,1,1,1),
             "font_size":14, "font":"Courier",
             "border":2, "bd":(1,1,1,1),
@@ -133,8 +134,11 @@ class GameScreen(Screen):
         }
 
     def __init__(self,name="",level=None,levelnum=1,score=0,**kw):
+        if not level:
+            level = self.find_level(levelnum)
         self.level = level
         self.levelnum = levelnum
+
         self.score = score
         self.light = lighting.claim_light()
         super(GameScreen,self).__init__(name,**kw)
@@ -169,14 +173,29 @@ class GameScreen(Screen):
     def set_mode(self,mode):
         self.mode = mode
 
+    def find_level(self,levelnum):
+        fname = "level{0:02}.lev".format(levelnum)
+        try:
+            with pyglet.resource.file(fname,"rb") as lf:
+                return pickle.load(lf)
+        except pyglet.resource.ResourceNotFoundException:
+            return None
+
     def build_parts(self,**kw):
         levname = self.level.get("name","Level")
         lev = panel.LabelPanel(
             "level_indicator",
             text="{0} ({1})".format(levname,self.levelnum),
-            multiline="True",
-            geom=dict(pos=(512,740,0)))                
-        ov = OrthoView("frame",[lev])
+            style_classes=['onframe'])
+        w,h = lev.content_size()
+        lev.pos = (w//2+16,768-h,0)
+        spanel = panel.LabelPanel(
+            "score",
+            text="{0:05}".format(self.score),
+            style_classes=['onframe'])
+        w,h = spanel.content_size()
+        spanel.pos = (1024-w//2-16,h-8,0)
+        ov = OrthoView("frame",[lev,spanel])
         with ov.compile_style():
             glClearColor(0,0,0,0)
             glDisable(GL_LIGHTING)
@@ -206,6 +225,12 @@ class GameScreen(Screen):
         
     def setup_style(self):
         lighting.setup()
+
+    def inc_score(self,points):
+        self.score += points
+        spanel = self["score"]
+        spanel.text = "{0:05}".format(self.score)
+        spanel.prepare()
 
     def add_ball(self,velocity):
         r = 0.2
@@ -295,7 +320,11 @@ class GameScreen(Screen):
                 # See if player has escaped
                 phex = collision.nearest_neighbours(newpos.x,newpos.y,0).next()
                 if phex == self.player_exit:
-                    self.exit_to(VictoryScreen,score=self.score)
+                    level = self.find_level(self.levelnum+1)
+                    if level:
+                        self.exit_to(GameScreen,score=self.score,level=level,levelnum=self.levelnum+1)
+                    else:
+                        self.exit_to(VictoryScreen,score=self.score)
 
     def step_balls(self,ms):
         player = self.player
@@ -316,7 +345,7 @@ class GameScreen(Screen):
                         points = self.hexfield.destroy(hc,hr)
                         if points:
                             ball.maxdestroy -= 1
-                            self.score += points
+                            self.inc_score(points)
                     break
             ball.pos = newpos
             if (ball.pos - ppos).length() < (r + pr):
@@ -359,15 +388,12 @@ class TitleScreen(Screen):
     def pick(self,label):
         name = label.target._name
         if name == "Start":
-            with pyglet.resource.file("level01.lev","rb") as lf:
-                level = pickle.load(lf)
-            self.exit_to(GameScreen, level=level)
+            self.exit_to(GameScreen)
         elif name == "Quit":
             self.exit_to(None)
 
 class VictoryScreen(Screen):
-    victory_html = """<h1>You Were Victorious</h1>
-After such a terrible ordeal, you creep out
+    victory_text = """After such a terrible ordeal, you creep out
 into the sunlight, and make your weary way
 home, hoping never again to see another ball
 or hexagon in your life..."""
@@ -378,10 +404,10 @@ or hexagon in your life..."""
     def build_parts(self,**kw):
         mixer.music.stop()
         pn = panel.LabelPanel(
-            "the_end", text=self.victory_html,
-            html=True,
+            "the_end", text=self.victory_text,
             geom=dict(pos=(512,400,0),
-                      text_width=800))
+                      text_width=800),
+            style_classes=['storytext'])
         ok_btn = panel.LabelPanel(
             "ok", text=" Finally! ",
             geom=dict(pos=(512,100,0)),
