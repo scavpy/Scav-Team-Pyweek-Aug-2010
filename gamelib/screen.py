@@ -228,8 +228,6 @@ class GameScreen(Screen):
             else:
                 self.camera.look_from_spherical(30,self.player.angle + 180,20,200)
                 self.first_person = True
-        elif sym == pygletkey.F4:
-            collision.DEBUG = not collision.DEBUG
         elif sym == pygletkey.ESCAPE:
             self.player_die("boredom")
         elif sym == pygletkey.RETURN:

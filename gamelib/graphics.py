@@ -33,7 +33,7 @@ def cellcolour(cellcode):
     elif c in "#<>^v":
         return (0.5,0.5,0.5,1)
     elif c == "H":
-        rgba = [int(x,16) * 16 for x in cellcode[1:4]] + [1]
+        rgba = [int(x,16) / 15.0 for x in cellcode[1:4]] + [1]
         return tuple(rgba)
     else:
         return (1,1,1,1)
@@ -78,11 +78,10 @@ class HexagonField(part.Part):
         self.dlbase = glGenLists(self.ndl)
         # Compile display lists
         for k,ct in self.celltypes.items():
-            print k,ct.n
             with gl_compile(self.dlbase + ct.n):
                 # space or player start
                 if k[0] in " S":
-                    glLineWidth(1)
+                    glLineWidth(1 if k[0] == " " else 3)
                     glColor4f(*cellcolour(k))
                     with gl_begin(GL_LINE_LOOP):
                         for x,y in hexcorners:

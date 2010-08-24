@@ -49,8 +49,11 @@ class Level:
         return set(self.hexes.values())
 
     def save(self,fname):
-        f = open(os.path.join("data",fname))
-        pickle.dump(f,-1)
+        d = dict(name=self.name, story=self.story,
+                 start=self.start, exit=self.exit,
+                 hexes=self.hexes, monsters=self.monsters)
+        with open(os.path.join("data",fname),"wb") as f:
+            pickle.dump(d,f,-1)
 
     def __setitem__(self,coords,cellcode):
         self.hexes[coords] = cellcode
