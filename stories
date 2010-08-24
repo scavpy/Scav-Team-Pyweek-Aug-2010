@@ -36,16 +36,21 @@ User Stories
    do anything interesting, and disappears after a certain duration of
    travel.)
    (Pressing ESC quits the game screen)
+   (scav) branch: balls, status: done
 
 10. The ball bounces off any occupied hexagons in a semi-realistic way.
+    (scav) branch: balls, status: done
 
 11. The ball destroys up to 3 normal coloured hexagons before disappearing.
+    (scav) branch: balls, status: done
 
 12. The ball kills the player too. The game screen exits to the score
     screen, which in turn exits to the title screen.
+    (scav) branch: winordie, status: dev
 
 13. The player wins on reaching an exit hexagon. The game screen exits to a
     victory screen, which exits to the title screen.
+    (scav) branch: winordie, status: dev
 
 14. Winning proceeds to the next level, unless there are no more levels,
     then it goes to the victory screen. The level number is shown in the
