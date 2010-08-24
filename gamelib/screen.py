@@ -185,6 +185,7 @@ class GameScreen(Screen):
         self.append(ov)
         hf = graphics.HexagonField("hexfield",self.level)
         pu,pv = hf.player_start
+        self.player_exit = hf.player_exit
         x,y = graphics.hex_to_world_coords(pu,pv)
         player = Player(name="player",
             geom=dict(pos=(x,y,0),radius=0.49))
@@ -242,7 +243,7 @@ class GameScreen(Screen):
         elif sym == pygletkey.F4:
             collision.DEBUG = not collision.DEBUG
         elif sym == pygletkey.ESCAPE:
-            self.exit_to(ScoreScreen,self.score)
+            self.player_die("boredom")
         elif sym == pygletkey.RETURN:
             a = radians(self.player.angle)
             v = Vec(cos(a),sin(a)) * 0.01 # per ms
@@ -291,6 +292,10 @@ class GameScreen(Screen):
                         break
                 player.pos = newpos
                 self.camera.look_at(tuple(player.pos))
+                # See if player has escaped
+                phex = collision.nearest_neighbours(newpos.x,newpos.y,0).next()
+                if phex == self.player_exit:
+                    self.exit_to(VictoryScreen,score=self.score)
 
     def step_balls(self,ms):
         player = self.player
@@ -315,10 +320,10 @@ class GameScreen(Screen):
                     break
             ball.pos = newpos
             if (ball.pos - ppos).length() < (r + pr):
-                self.player_die()
+                self.player_die("ball trauma")
 
-    def player_die(self):
-        self.exit_to(ScoreScreen,score=self.score)
+    def player_die(self,died_of=""):
+        self.exit_to(ScoreScreen,score=self.score,died_of=died_of)
 
     def step(self,ms):
         if self.reload > 0:
@@ -360,24 +365,62 @@ class TitleScreen(Screen):
         elif name == "Quit":
             self.exit_to(None)
 
+class VictoryScreen(Screen):
+    victory_html = """<h1>You Were Victorious</h1>
+After such a terrible ordeal, you creep out
+into the sunlight, and make your weary way
+home, hoping never again to see another ball
+or hexagon in your life..."""
+    def __init__(self,score,**kw):
+        self.score = score
+        super(VictoryScreen,self).__init__(**kw)
+
+    def build_parts(self,**kw):
+        mixer.music.stop()
+        pn = panel.LabelPanel(
+            "the_end", text=self.victory_html,
+            html=True,
+            geom=dict(pos=(512,400,0),
+                      text_width=800))
+        ok_btn = panel.LabelPanel(
+            "ok", text=" Finally! ",
+            geom=dict(pos=(512,100,0)),
+            style_classes=['button'])
+        ov = OrthoView(
+            "ortho", [pn,ok_btn],
+            geom=dict(left=0,right=1024,top=768,bottom=0))
+        with ov.compile_style():
+            glClearColor(0.1,0.6,0.1,0)
+            glDisable(GL_LIGHTING)
+        self.append(ov)
+        
+    def pick(self,label):
+        name = label.target._name
+        if name == "ok":
+            self.exit_to(ScoreScreen,score=self.score)
+
 class ScoreScreen(Screen):
     _screen_styles = {
         "LabelPanel.#score": {
-            "bg":(0,0.3,0.5,1), "fg":(1,1,1,1),
+            "bg":None, "fg":(1,1,1,1),
             "font_size":64,
-            "bg_margin":18,"bg_radius":42, "bg_round:":0,
-            "bd_margin":18,"bd_radius":42, "bd_round:":0,
             },
+        "LabelPanel.#coroners_report": {
+            "bg":(0.9,0.9,0.8,1),"fg":(0,0,0,1),
+            "bg_margin":20,
+            "font":"Courier",
+            "font_size":20 },
         }
-    def __init__(self,score,**kw):
+    def __init__(self,score,died_of="",**kw):
         self.score = score
+        self.died_of = died_of
         super(ScoreScreen,self).__init__(**kw)
         
     def build_parts(self,**kw):
         mixer.music.stop()
         pn = panel.LabelPanel(
             "score", text="Your Score: {0}".format(self.score),
-            geom=dict(pos=(512,380,0)))
+            geom=dict(pos=(512,600,0)))
         ok_btn = panel.LabelPanel(
             "ok", text=" OK ",
             geom=dict(pos=(512,100,0)),
@@ -385,6 +428,16 @@ class ScoreScreen(Screen):
         ov = OrthoView(
             "ortho", [pn,ok_btn],
             geom=dict(left=0,right=1024,top=768,bottom=0))
+        if self.died_of:
+            text = ("CORONER'S REPORT\n"
+                    "----------------\n"
+                    "Cause of death: {0}").format(self.died_of)
+            CoD = panel.LabelPanel(
+                "coroners_report",
+                text=text,
+                geom=dict(pos=(512,300,0),
+                          text_width=280))
+            ov.append(CoD)
         with ov.compile_style():
             glClearColor(0.1,0,0.1,0)
             glDisable(GL_LIGHTING)
