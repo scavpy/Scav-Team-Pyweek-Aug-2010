@@ -6,7 +6,7 @@ from tdgl.gl import *
 from tdgl import part, objpart, viewpoint, panel
 from tdgl.vec import Vec
 
-import collision
+import collision, levelfile
 
 # vertical and horizontal spacing of hexagons
 Vspace = 3**0.5
@@ -26,6 +26,19 @@ TILE_OBJECTS = {
     "<":objpart.get_obj("wwall.obj"),
 }
 
+def cellcolour(cellcode):
+    c = cellcode[:1]
+    if c == " ":
+        return (0,0.5,0.5,0.5)
+    elif c in "#<>^v":
+        return (0.5,0.5,0.5,1)
+    elif c == "H":
+        rgba = [int(x,16) * 16 for x in cellcode[1:4]] + [1]
+        return tuple(rgba)
+    else:
+        return (1,1,1,1)
+
+
 class CellType(object):
     def __init__(self,n,walkable=False):
         self.n = n
@@ -36,63 +49,52 @@ class HexagonField(part.Part):
     centre of hexagons in even columns are at
     x = 1.5u, y = Vspace * v; center of hexagons in odd
     columns are x = 1.5u, y = Vspace * v + Vhalf"""
-    def __init__(self,name="",level={},**kw):
+    def __init__(self,name,level,**kw):
         super(HexagonField,self).__init__(name,**kw)
-        self.cells = {} # {(u,v):celltype}
-        self.obstacles = {}
-        self.player_start = (0,0)
-        self.player_exit = (1,1)
-        self.build_dl(level)
+        self.level = level
+        self.ndl = 0
+        self.dlbase = None
+        self.build_dl()
 
     def __del__(self):
         glDeleteLists(self.dlbase, self.ndl)
 
-    def build_dl(self,level):
+    def build_dl(self):
         """Parse the somewhat clunky level definition object,
         and make display lists for each distinct kind of
         tile in the level"""
+        level = self.level
+        self.cells = {} # {(u,v):dl_offset}
+        if self.ndl:
+            glDeleteLists(self.dlbase, self.ndl)
         self.celltypes = {}
-        self.celltypes[" "] = CellType(0,True)
-        numtypes = 1
-        rows = level.get("body",[])
-        v = len(rows)
-        for row in rows:
-            v -= 1
-            for u,cell in enumerate(row.split(",")):
-                ct = self.celltypes.get(cell)
-                if not ct:
-                    n = numtypes
-                    walk = cell[:1] in ("","E"," ","S","X")
-                    ct = self.celltypes[cell] = CellType(n,walk)
-                    numtypes += 1
-                    if cell == "S":
-                        self.player_start = (u,v)
-                    elif cell == "X":
-                        self.player_exit = (u,v)
-                self.cells[u,v] = self.celltypes[cell].n
-                if not ct.walkable:
-                    self.obstacles[u,v] = cell
+        for i,ct in enumerate(sorted(level.celltypes)):
+            self.celltypes[ct] = CellType(i,ct in " SX")
+        numtypes = len(level.celltypes)
+        for coords,cellcode in level.hexes.items():
+            ct = self.celltypes[cellcode]
+            self.cells[coords] = ct.n
         self.ndl = numtypes
         self.dlbase = glGenLists(self.ndl)
         # Compile display lists
         for k,ct in self.celltypes.items():
+            print k,ct.n
             with gl_compile(self.dlbase + ct.n):
-                # space or player start or enemy
-                if k[:1] in ("","E"," ","S"):
+                # space or player start
+                if k[0] in " S":
                     glLineWidth(1)
-                    glColor4f(0,0.4,0.3,0.3)
+                    glColor4f(*cellcolour(k))
                     with gl_begin(GL_LINE_LOOP):
                         for x,y in hexcorners:
                             glVertex2f(x,y)
                 elif k[0] == "H":  # hexagon tile
-                    colour = tuple(0.25*int(c) for c in k[1:])
-                    glColor3f(*colour)
+                    glColor4f(*cellcolour(k))
                     glCallList(TILE_OBJECTS["H"].mesh_dls["hex"])
                 elif k[0] in "#^v<>": #wall
-                    glColor3f(0.7,0.7,0.7)
+                    glColor4f(*cellcolour(k))
                     glCallList(TILE_OBJECTS[k[0]].mesh_dls["hex"])
                 elif k[0] == "X":  # exit
-                    glColor3f(1,1,1)
+                    glColor4f(*cellcolour(k))
                     glLineWidth(3)
                     with gl_begin(GL_LINES): # STUB
                         for x,y in [
@@ -102,11 +104,6 @@ class HexagonField(part.Part):
                 else:
                     pass # TODO the rest
         self.all_dl = glGenLists(1)
-
-    def obstacles_near(self,x,y):
-        return [(hc,hr,self.obstacles[hc,hr])
-                for hc,hr in collision.nearest_neighbours(x,y,2)
-                if (hc,hr) in self.obstacles]
 
     def setup_style(self):
         glEnable(GL_COLOR_MATERIAL)
@@ -130,13 +127,11 @@ class HexagonField(part.Part):
     def destroy(self,hc,hr):
         """Destroy the hexagon at hc,hr.
         Return false if not possible"""
-        c = self.obstacles.get((hc,hr))
-        if not c or c[0] != "H":
-            return False
-        del self.obstacles[hc,hr]
-        self.cells[hc,hr] = 0 # blank
-        self.prepare()
-        return 10 # points?
+        c = self.level.destroy(hc,hr)
+        if c:
+            self.cells[hc,hr] = 0 # blank
+            self.prepare()
+            return 10
 
 class ClockPart(part.Part):
     clock = pyglet.clock.ClockDisplay()

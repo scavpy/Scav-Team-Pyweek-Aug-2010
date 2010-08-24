@@ -17,6 +17,7 @@ from tdgl.vec import Vec
 
 import graphics
 import collision
+import levelfile
 import main # for options
 from graphics import ClockPart, Ball, Player, ScreenFrame
 
@@ -150,18 +151,13 @@ class GameScreen(Screen):
 
     def find_level(self,levelnum):
         fname = "level{0:02}.lev".format(levelnum)
-        try:
-            with pyglet.resource.file(fname,"rb") as lf:
-                return pickle.load(lf)
-        except pyglet.resource.ResourceNotFoundException:
-            return None
+        return levelfile.load_level(fname)
 
     def build_parts(self,**kw):
         ov = ScreenFrame()
-        levname = self.level.get("name","Level")
         ov.add_label(
             "level_indicator",
-            "{0} ({1})".format(levname,self.levelnum))
+            "{0} ({1})".format(self.level.name,self.levelnum))
         ov.add_label("score",
                      "{0:05}".format(self.score),
                      top=False,left=False)
@@ -172,8 +168,8 @@ class GameScreen(Screen):
             ov.append(ClockPart(geom=dict(pos=(50,50,0))))
         self.append(ov)
         hf = graphics.HexagonField("hexfield",self.level)
-        pu,pv = hf.player_start
-        self.player_exit = hf.player_exit
+        pu,pv = self.level.start
+        self.player_exit = self.level.exit
         x,y = graphics.hex_to_world_coords(pu,pv)
         player = Player(name="player",
             geom=dict(pos=(x,y,0),radius=0.49))
@@ -274,7 +270,7 @@ class GameScreen(Screen):
             if dx or dy:
                 # See if player will collide with any hexagons
                 px,py,pz = player.pos
-                obstacles = self.hexfield.obstacles_near(px,py)
+                obstacles = self.level.obstacles_near(px,py)
                 newpos = v + player.pos
                 r = player.getgeom('radius',0.49)
                 for hc,hr,cell in obstacles:
@@ -302,7 +298,7 @@ class GameScreen(Screen):
             bx,by,bz = pos = ball.pos
             newpos = v + pos
             r = ball.getgeom('radius',0.2)
-            obstacles = self.hexfield.obstacles_near(bx,by)
+            obstacles = self.level.obstacles_near(bx,by)
             for hc,hr,cell in obstacles:
                 P = collision.collides(hc,hr,pos,r,v,collision.COLLIDE_REBOUND)
                 if P:

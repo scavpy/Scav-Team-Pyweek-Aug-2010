@@ -23,16 +23,26 @@
 import os
 from pyglet import resource
 import pickle
+import copy
+
+import collision
 
 class Level:
-    def __init__(self,leveldict):
-        self.__dict__.update(leveldict)
+    _defaults = {
+        "name":"a level",
+        "story":[],
+        "hexes":{},
+        "start":(0,0),
+        "exit":(2,0),
+        "monsters":{}}
+    def __init__(self,leveldict=_defaults):
+        self.__dict__.update(copy.deepcopy(leveldict))
         # sanity check
-        if self.hexes[self.start]:
-            del self.hexes[self.start]
-        for coords in list(self.monsters) + [self.start, self.exit]:
+        for coords in list(self.monsters):
             if coords in self.hexes:
                 del self.hexes[coords]
+        self.hexes[self.start] = "S"
+        self.hexes[self.exit] = "X"
 
     @property
     def celltypes(self):
@@ -44,17 +54,32 @@ class Level:
 
     def __setitem__(self,coords,cellcode):
         self.hexes[coords] = cellcode
+
+    def obstacles_near(self,x,y):
+        return [(hc,hr,self.hexes[hc,hr])
+                for hc,hr in collision.nearest_neighbours(x,y,2)
+                if self.hexes.get((hc,hr)," ") not in " SX"]
+
+    def destroy(self,hc,hr):
+        """Destroy the hexagon at hc,hr.
+        Return false if not possible"""
+        c = self.hexes.get((hc,hr)," ")
+        if c[0] != "H":
+            return False
+        self.hexes[hc,hr] = " "
+        return c
+
         
 def load_level(fname):
     try:
         with resource.file(fname,"rb") as f:
             return Level(pickle.load(f))
     except resource.ResourceNotFoundException:
-        return None
-
-
-
-
+        try:
+            with open(fname,"rb") as f:
+                return Level(pickle.load(f))
+        except IOError:
+            return None
  
  
 
