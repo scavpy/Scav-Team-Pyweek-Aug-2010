@@ -18,6 +18,7 @@ from tdgl.vec import Vec
 import graphics
 import collision
 import main # for options
+from graphics import ClockPart, Ball, Player, ScreenFrame
 
 MUSIC = {
     "title":"data/sound/subterranean.ogg",
@@ -93,32 +94,6 @@ class Screen(part.Group):
     def cleanup(self):
         pass
 
-class ClockPart(part.Part):
-    clock = pyglet.clock.ClockDisplay()
-    def __init__(self,name="clock",**kw):
-        super(ClockPart,self).__init__(name,**kw)
-    def render(self,mode):
-        if mode != "PICK":
-            self.clock.draw()
-
-class Player(objpart.ObjPart):
-    _default_geom = {'radius':0.49}
-    pass
-
-class Ball(objpart.ObjPart):
-    _default_geom = {'radius':0.2}
-
-    def __init__(self,velocity=(0,0),duration=6000,maxdestroy=3,**kw):
-        super(Ball,self).__init__('',**kw)
-        self.velocity = Vec(velocity)
-        self.duration = duration
-        self.maxdestroy = maxdestroy
-
-    def step(self,ms):
-        self.duration -= ms
-        if self.duration < 0:
-            self._expired = True
-
 
 class GameScreen(Screen):
     _screen_styles = {
@@ -182,20 +157,14 @@ class GameScreen(Screen):
             return None
 
     def build_parts(self,**kw):
+        ov = ScreenFrame()
         levname = self.level.get("name","Level")
-        lev = panel.LabelPanel(
+        ov.add_label(
             "level_indicator",
-            text="{0} ({1})".format(levname,self.levelnum),
-            style_classes=['onframe'])
-        w,h = lev.content_size()
-        lev.pos = (w//2+16,768-h,0)
-        spanel = panel.LabelPanel(
-            "score",
-            text="{0:05}".format(self.score),
-            style_classes=['onframe'])
-        w,h = spanel.content_size()
-        spanel.pos = (1024-w//2-16,h-8,0)
-        ov = OrthoView("frame",[lev,spanel])
+            "{0} ({1})".format(levname,self.levelnum))
+        ov.add_label("score",
+                     "{0:05}".format(self.score),
+                     top=False,left=False)
         with ov.compile_style():
             glClearColor(0,0,0,0)
             glDisable(GL_LIGHTING)
@@ -228,9 +197,7 @@ class GameScreen(Screen):
 
     def inc_score(self,points):
         self.score += points
-        spanel = self["score"]
-        spanel.text = "{0:05}".format(self.score)
-        spanel.prepare()
+        self["frame"].update_label("score","{0:05}",self.score)
 
     def add_ball(self,velocity):
         r = 0.2
@@ -427,7 +394,7 @@ or hexagon in your life..."""
 
 class ScoreScreen(Screen):
     _screen_styles = {
-        "LabelPanel.#score": {
+        "LabelPanel.#finalscore": {
             "bg":None, "fg":(1,1,1,1),
             "font_size":64,
             },
@@ -445,7 +412,7 @@ class ScoreScreen(Screen):
     def build_parts(self,**kw):
         mixer.music.stop()
         pn = panel.LabelPanel(
-            "score", text="Your Score: {0}".format(self.score),
+            "finalscore", text="Your Score: {0}".format(self.score),
             geom=dict(pos=(512,600,0)))
         ok_btn = panel.LabelPanel(
             "ok", text=" OK ",

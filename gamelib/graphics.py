@@ -3,7 +3,8 @@
 """
 import pickle
 from tdgl.gl import *
-from tdgl import part, objpart
+from tdgl import part, objpart, viewpoint, panel
+from tdgl.vec import Vec
 
 import collision
 
@@ -137,3 +138,54 @@ class HexagonField(part.Part):
         self.prepare()
         return 10 # points?
 
+class ClockPart(part.Part):
+    clock = pyglet.clock.ClockDisplay()
+    def __init__(self,name="clock",**kw):
+        super(ClockPart,self).__init__(name,**kw)
+    def render(self,mode):
+        if mode != "PICK":
+            self.clock.draw()
+
+class Player(objpart.ObjPart):
+    _default_geom = {'radius':0.49}
+    pass
+
+class Ball(objpart.ObjPart):
+    _default_geom = {'radius':0.2}
+
+    def __init__(self,velocity=(0,0),duration=6000,maxdestroy=3,**kw):
+        super(Ball,self).__init__('',**kw)
+        self.velocity = Vec(velocity)
+        self.duration = duration
+        self.maxdestroy = maxdestroy
+
+    def step(self,ms):
+        self.duration -= ms
+        if self.duration < 0:
+            self._expired = True
+
+
+class ScreenFrame(viewpoint.OrthoView):
+    def __init__(self,name="frame",contents=(),**kw):
+        super(ScreenFrame,self).__init__(name,contents,**kw)
+
+    def add_label(self,name,text,top=True,left=True,**kw):
+        lab = panel.LabelPanel(
+            name, text=text, 
+            style_classes = ['onframe'])
+        w,h = lab.content_size()
+        x = w // 2 + 16
+        y = h // 2 + 16
+        if top:
+            y = 768 - y
+        if not left:
+            x = 1024 - x
+        lab.pos = (x,y,0.1)
+        self.append(lab)
+
+    def update_label(self,name,text,*args):
+        lab = self[name]
+        lab.text = text.format(*args)
+        lab.prepare()
+        
+        
