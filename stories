@@ -46,15 +46,16 @@ User Stories
 
 12. The ball kills the player too. The game screen exits to the score
     screen, which in turn exits to the title screen.
-    (scav) branch: winordie, status: dev
+    (scav) branch: winordie, status: done
 
 13. The player wins on reaching an exit hexagon. The game screen exits to a
     victory screen, which exits to the title screen.
-    (scav) branch: winordie, status: dev
+    (scav) branch: winordie, status: done
 
 14. Winning proceeds to the next level, unless there are no more levels,
     then it goes to the victory screen. The level number is shown in the
     top left of the screen.
+    (scav) branch: winordie, status: dev
 
 15. At the start of each level, some narrative text is overlaid on the
     screen, until dismissed by a key press or mouse click. This should
@@ -67,6 +68,7 @@ User Stories
 
 18. Destroying hexagons should increase the score, which will be shown
     on the bottom right of the screen.
+    (scav) branch: winordie, status: dev
 
 19. Monsters will roam the grid. They move randomly or bounce around like
     the ball.  Contact with the player kills the player. Contact with the
