@@ -104,7 +104,7 @@ class Player(objpart.ObjPart):
     pass
 
 class Ball(objpart.ObjPart):
-    def __init__(self,velocity=(0,0),duration=1000,maxdestroy=3,**kw):
+    def __init__(self,velocity=(0,0),duration=10000,maxdestroy=3,**kw):
         super(Ball,self).__init__('',**kw)
         self.velocity = Vec(velocity)
         self.duration = duration
@@ -155,6 +155,7 @@ class GameScreen(Screen):
         vport = (GLint*4)()
         glGetIntegerv(GL_VIEWPORT, vport)
         self.vport = tuple(vport)
+        self.reload = 0
 
             
     def __del__(self):
@@ -209,6 +210,8 @@ class GameScreen(Screen):
         """ Click to fire """
         if button != 1:
             return
+        if self.reload:
+            return
         if self.first_person:
             a = radians(self.player.angle)
             v = Vec(cos(a),sin(a)) * 0.01 # per ms
@@ -216,6 +219,7 @@ class GameScreen(Screen):
             vx,vy,vw,vh = self.vport
             v = Vec(x - (vx + vw//2), y - (vy + vh//2)).normalise() * 0.01
         self.add_ball(v)
+        self.reload = 500
 
     def keydown(self,sym,mods):
         self.keysdown.add(sym)
@@ -289,10 +293,15 @@ class GameScreen(Screen):
                 if P:
                     newpos, bv_times_ms = P
                     ball.velocity = bv_times_ms * (1/ms)
+                    if ball.maxdestroy > 0:
+                        if self.hexfield.destroy(hc,hr):
+                            ball.maxdestroy -= 1
                     break
             ball.pos = newpos
 
     def step(self,ms):
+        if self.reload > 0:
+            self.reload = max(0,self.reload - ms)
         self.step_player(ms)
         self.step_balls(ms)
         self.step_contents(ms)

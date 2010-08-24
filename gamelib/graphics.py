@@ -60,7 +60,7 @@ class HexagonField(part.Part):
                 ct = self.celltypes.get(cell)
                 if not ct:
                     n = numtypes
-                    walk = cell[:1] in ("","E"," ","S")
+                    walk = cell[:1] in ("","E"," ","S","X")
                     ct = self.celltypes[cell] = CellType(n,walk)
                     numtypes += 1
                     if cell == "S":
@@ -122,4 +122,15 @@ class HexagonField(part.Part):
                 glTranslatef(dx,dy,0)
                 glCallList(dlbase + d)
                 glTranslatef(-dx,-dy,0)
+
+    def destroy(self,hc,hr):
+        """Destroy the hexagon at hc,hr.
+        Return false if not possible"""
+        c = self.obstacles.get((hc,hr))
+        if not c or c[0] != "H":
+            return False
+        del self.obstacles[hc,hr]
+        self.cells[hc,hr] = 0 # blank
+        self.prepare()
+        return 10 # points?
 
