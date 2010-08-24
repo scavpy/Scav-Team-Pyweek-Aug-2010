@@ -101,10 +101,13 @@ class ClockPart(part.Part):
             self.clock.draw()
 
 class Player(objpart.ObjPart):
+    _default_geom = {'radius':0.49}
     pass
 
 class Ball(objpart.ObjPart):
-    def __init__(self,velocity=(0,0),duration=10000,maxdestroy=3,**kw):
+    _default_geom = {'radius':0.2}
+
+    def __init__(self,velocity=(0,0),duration=6000,maxdestroy=3,**kw):
         super(Ball,self).__init__('',**kw)
         self.velocity = Vec(velocity)
         self.duration = duration
@@ -129,8 +132,10 @@ class GameScreen(Screen):
         "Ball":{"obj-filename":"faceball.obj"},
         }
 
-    def __init__(self,name="",level=None,**kw):
+    def __init__(self,name="",level=None,levelnum=1,score=0,**kw):
         self.level = level
+        self.levelnum = levelnum
+        self.score = score
         self.light = lighting.claim_light()
         super(GameScreen,self).__init__(name,**kw)
         self.set_mode("playing")
@@ -165,10 +170,12 @@ class GameScreen(Screen):
         self.mode = mode
 
     def build_parts(self,**kw):
+        levname = self.level.get("name","Level")
         lev = panel.LabelPanel(
             "level_indicator",
-            text="Level 01",multiline="True",
-            geom=dict(pos=(60,730,0)))                
+            text="{0} ({1})".format(levname,self.levelnum),
+            multiline="True",
+            geom=dict(pos=(512,740,0)))                
         ov = OrthoView("frame",[lev])
         with ov.compile_style():
             glClearColor(0,0,0,0)
@@ -180,7 +187,7 @@ class GameScreen(Screen):
         pu,pv = hf.player_start
         x,y = graphics.hex_to_world_coords(pu,pv)
         player = Player(name="player",
-            geom=dict(pos=(x,y,0)))
+            geom=dict(pos=(x,y,0),radius=0.49))
         self.player = player
         self.hexfield = hf
         balls = part.Group("balls",[])
@@ -200,9 +207,11 @@ class GameScreen(Screen):
         lighting.setup()
 
     def add_ball(self,velocity):
-        ball = Ball(velocity=velocity)
-        ballx,bally,_ = self.player.pos
-        ball.pos = (ballx,bally,0.1)
+        r = 0.2
+        ball = Ball(velocity=velocity,geom=dict(radius=r))
+        player = self.player
+        pr = player.getgeom('radius',0.49)
+        ball.pos = velocity.normalise() * (r + pr + 0.1) + player.pos
         ball.restyle(True)
         self["balls"].append(ball)
              
@@ -233,7 +242,7 @@ class GameScreen(Screen):
         elif sym == pygletkey.F4:
             collision.DEBUG = not collision.DEBUG
         elif sym == pygletkey.ESCAPE:
-            self.exit_to(TitleScreen)
+            self.exit_to(ScoreScreen,self.score)
         elif sym == pygletkey.RETURN:
             a = radians(self.player.angle)
             v = Vec(cos(a),sin(a)) * 0.01 # per ms
@@ -274,8 +283,9 @@ class GameScreen(Screen):
                 px,py,pz = player.pos
                 obstacles = self.hexfield.obstacles_near(px,py)
                 newpos = v + player.pos
+                r = player.getgeom('radius',0.49)
                 for hc,hr,cell in obstacles:
-                    P = collision.collides(hc,hr,player.pos,0.49,v,collision.COLLIDE_POSITION)
+                    P = collision.collides(hc,hr,player.pos,r,v,collision.COLLIDE_POSITION)
                     if P:
                         newpos = P
                         break
@@ -283,21 +293,32 @@ class GameScreen(Screen):
                 self.camera.look_at(tuple(player.pos))
 
     def step_balls(self,ms):
+        player = self.player
+        pr = player.getgeom('radius',0.49)
+        ppos = player.pos
         for ball in self["balls"].contents:
             v = ball.velocity * ms
             bx,by,bz = pos = ball.pos
             newpos = v + pos
+            r = ball.getgeom('radius',0.2)
             obstacles = self.hexfield.obstacles_near(bx,by)
             for hc,hr,cell in obstacles:
-                P = collision.collides(hc,hr,pos,0.49,v,collision.COLLIDE_REBOUND)
+                P = collision.collides(hc,hr,pos,r,v,collision.COLLIDE_REBOUND)
                 if P:
                     newpos, bv_times_ms = P
                     ball.velocity = bv_times_ms * (1/ms)
                     if ball.maxdestroy > 0:
-                        if self.hexfield.destroy(hc,hr):
+                        points = self.hexfield.destroy(hc,hr)
+                        if points:
                             ball.maxdestroy -= 1
+                            self.score += points
                     break
             ball.pos = newpos
+            if (ball.pos - ppos).length() < (r + pr):
+                self.player_die()
+
+    def player_die(self):
+        self.exit_to(ScoreScreen,score=self.score)
 
     def step(self,ms):
         if self.reload > 0:
@@ -338,8 +359,41 @@ class TitleScreen(Screen):
             self.exit_to(GameScreen, level=level)
         elif name == "Quit":
             self.exit_to(None)
-        else:
-            print label
+
+class ScoreScreen(Screen):
+    _screen_styles = {
+        "LabelPanel.#score": {
+            "bg":(0,0.3,0.5,1), "fg":(1,1,1,1),
+            "font_size":64,
+            "bg_margin":18,"bg_radius":42, "bg_round:":0,
+            "bd_margin":18,"bd_radius":42, "bd_round:":0,
+            },
+        }
+    def __init__(self,score,**kw):
+        self.score = score
+        super(ScoreScreen,self).__init__(**kw)
+        
+    def build_parts(self,**kw):
+        mixer.music.stop()
+        pn = panel.LabelPanel(
+            "score", text="Your Score: {0}".format(self.score),
+            geom=dict(pos=(512,380,0)))
+        ok_btn = panel.LabelPanel(
+            "ok", text=" OK ",
+            geom=dict(pos=(512,100,0)),
+            style_classes=['button'])
+        ov = OrthoView(
+            "ortho", [pn,ok_btn],
+            geom=dict(left=0,right=1024,top=768,bottom=0))
+        with ov.compile_style():
+            glClearColor(0.1,0,0.1,0)
+            glDisable(GL_LIGHTING)
+        self.append(ov)
+        
+    def pick(self,label):
+        name = label.target._name
+        if name == "ok":
+            self.exit_to(TitleScreen)
 
 # Initialisation
 Screen.set_next(TitleScreen)
