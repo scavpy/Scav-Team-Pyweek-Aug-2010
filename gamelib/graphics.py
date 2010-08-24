@@ -84,9 +84,9 @@ class HexagonField(part.Part):
                     colour = tuple(0.25*int(c) for c in k[1:])
                     glColor3f(*colour)
                     glCallList(TILE_OBJECTS["H"].mesh_dls["hex"])
-                elif k == "#": #wall
-                    glColor3f(0.3,0.3,0.3)
-                    glCallList(TILE_OBJECTS["#"].mesh_dls["hex"])
+                elif k[0] in "#^v<>": #wall
+                    glColor3f(0.7,0.7,0.7)
+                    glCallList(TILE_OBJECTS[k[0]].mesh_dls["hex"])
                 elif k[0] == "X":  # exit
                     glColor3f(1,1,1)
                     glLineWidth(3)
@@ -97,6 +97,7 @@ class HexagonField(part.Part):
                             glVertex2f(x,y)
                 else:
                     pass # TODO the rest
+        self.all_dl = glGenLists(1)
 
     def obstacles_near(self,x,y):
         return [(hc,hr,self.obstacles[hc,hr])
@@ -110,11 +111,15 @@ class HexagonField(part.Part):
         glDisable(GL_COLOR_MATERIAL)
 
     def render(self, mode):
-        dlbase = self.dlbase
-        h2w = hex_to_world_coords
-        for (u,v),d in self.cells.items():
-            dx,dy = h2w(u,v)
-            glTranslatef(dx,dy,0)
-            glCallList(dlbase + d)
-            glTranslatef(-dx,-dy,0)
+        glCallList(self.all_dl)
+
+    def prepare(self):
+        with gl_compile(self.all_dl):
+            dlbase = self.dlbase
+            h2w = hex_to_world_coords
+            for (u,v),d in self.cells.items():
+                dx,dy = h2w(u,v)
+                glTranslatef(dx,dy,0)
+                glCallList(dlbase + d)
+                glTranslatef(-dx,-dy,0)
 
