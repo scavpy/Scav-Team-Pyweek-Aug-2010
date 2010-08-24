@@ -152,6 +152,10 @@ class GameScreen(Screen):
             }
         self.keysdown = set()
         self.first_person = False
+        vport = (GLint*4)()
+        glGetIntegerv(GL_VIEWPORT, vport)
+        self.vport = tuple(vport)
+
             
     def __del__(self):
         lighting.release_light(self.light)
@@ -205,8 +209,12 @@ class GameScreen(Screen):
         """ Click to fire """
         if button != 1:
             return
-        a = radians(self.player.angle)
-        v = Vec(cos(a),sin(a)) * 0.01 # per ms
+        if self.first_person:
+            a = radians(self.player.angle)
+            v = Vec(cos(a),sin(a)) * 0.01 # per ms
+        else:
+            vx,vy,vw,vh = self.vport
+            v = Vec(x - (vx + vw//2), y - (vy + vh//2)).normalise() * 0.01
         self.add_ball(v)
 
     def keydown(self,sym,mods):
