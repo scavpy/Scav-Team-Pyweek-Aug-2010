@@ -4,6 +4,7 @@ Screen module.
 The game is divided into Screens
 """
 import pickle
+import random
 import pyglet
 from pyglet.window import key as pygletkey
 from math import atan2,degrees,radians,sin,cos
@@ -110,13 +111,6 @@ class GameScreen(Screen):
                    "mtl-override-pieces":["Body"],
                    "override-mtl":"Gold"},
         "Ball":{ "obj-filename":"prismball.obj" },
-        "Wanderer": {"obj-filename":"crab.obj" },
-        "Hunter": {"obj-filename":"crab.obj",
-                   "mtl-override-pieces":["Body"],
-                   "override-mtl":"Chocolate"},
-        "Squashy": {"obj-filename":"crab.obj" },
-        "Monster": {"obj-filename":"crab.obj" },
-        "Shuttler": {"obj-filename":"crab.obj" },
         }
 
     def __init__(self,name="",level=None,levelnum=1,score=0,**kw):
@@ -124,9 +118,9 @@ class GameScreen(Screen):
             level = self.find_level(levelnum)
         self.level = level
         self.levelnum = levelnum
-
         self.score = score
         self.light = lighting.claim_light()
+        stylesheet.load(monsters.MonsterStyles)
         super(GameScreen,self).__init__(name,**kw)
         self.set_mode("playing")
         Sin60 = collision.Sin60
@@ -191,7 +185,7 @@ class GameScreen(Screen):
         sv = SceneView("scene",[hf,player,balls,monsters])
         sv.camera.look_at((x,y,0),10)
         sv.camera.look_from_spherical(87,-90,300)
-        sv.camera.look_from_spherical(87,-90,100,1000)
+        sv.camera.look_from_spherical(80,-90,100,1000)
         self.camera = sv.camera
         with sv.compile_style():
             glEnable(GL_LIGHTING)
@@ -201,16 +195,20 @@ class GameScreen(Screen):
         self.append(sv)
         
     def build_monsters(self,level):
-        """ TODO: do this properly """
         ms = []
         count = 0
-        if not level.monsters:
-            level.monsters[level.exit] = "Hunter"
         for coords, classname in level.monsters.items():
             pos = collision.h_centre(*coords)
             M = getattr(monsters,classname,monsters.Monster)
+            if classname == "Hunter" or coords == level.exit:
+                vel = Vec(0,0)
+            else: # random direction and speed
+                vel = (random.choice(collision.H_NORMAL) *
+                       random.gauss(1.0,0.02) * 0.01)
             m = M("{0}{1}".format(classname,count),
+                  velocity=vel,
                   geom=dict(pos=pos,angle=0))
+            count += 1
             ms.append(m)
         return ms
 
@@ -252,10 +250,10 @@ class GameScreen(Screen):
         self.keysdown.add(sym)
         if sym == pygletkey.F3:
             if self.first_person:
-                self.camera.look_from_spherical(87,-90,100,200)
+                self.camera.look_from_spherical(80,-90,100,200)
                 self.first_person = False
             else:
-                self.camera.look_from_spherical(30,self.player.angle + 180,20,200)
+                self.camera.look_from_spherical(30,self.player.angle + 180,30,200)
                 self.first_person = True
         elif sym == pygletkey.ESCAPE:
             self.player_die("boredom")
@@ -275,13 +273,15 @@ class GameScreen(Screen):
         if self.keysdown:
             if self.first_person:
                 a = self.player.angle
-                if pygletkey.LEFT in self.keysdown:
+                if pygletkey.A in self.keysdown:
                     a += 10
-                if pygletkey.RIGHT in self.keysdown:
+                if pygletkey.D in self.keysdown:
                     a -= 10
                 theta = radians(a)
-                if pygletkey.UP in self.keysdown:
+                if pygletkey.W in self.keysdown:
                     v = Vec(cos(theta),sin(theta)) * ms * 0.01
+                elif pygletkey.S in self.keysdown:
+                    v = Vec(cos(theta),sin(theta)) * ms * -0.01                    
                 else:
                     v = Vec(0,0)
                 dx,dy,dz = v

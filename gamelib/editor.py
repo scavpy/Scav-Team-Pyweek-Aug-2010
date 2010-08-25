@@ -1,4 +1,9 @@
+"""
+   Simple level editor
+
+"""
 import os
+from inspect import isclass
 import pyglet
 import pyglet.resource
 pyglet.resource.path = ["../data", "../data/models"]
@@ -6,9 +11,9 @@ pyglet.resource.reindex()
 import pyglet.window.key as pygkey
 
 from tdgl.gl import *
-from tdgl import viewpoint, lighting, part, picking, panel
+from tdgl import viewpoint, lighting, part, picking, panel, stylesheet
 
-import levelfile, collision, graphics
+import levelfile, collision, graphics, monsters
 
 basic_hexes = {pygkey.R:"Hf00",
                pygkey.G:"H0f0",
@@ -40,8 +45,19 @@ class EditorWindow(pyglet.window.Window):
                 self.level.story = f.read.split("\n\n")
         self.cellcode = "#"
         self.rgb = [1,1,1]
+        stylesheet.load(monsters.MonsterStyles)
+        self.get_monster_list()
         self.build_parts()
 
+    def get_monster_list(self):
+        self.monster_list = []
+        for name in dir(monsters):
+            k = getattr(monsters,name)
+            if not isclass(k): continue
+            if name == "Monster": continue
+            if issubclass(k,monsters.Monster):
+                self.monster_list.append(name)
+                           
     def build_parts(self):
         view = viewpoint.OrthoView(
             "view",[],
@@ -79,6 +95,9 @@ class EditorWindow(pyglet.window.Window):
                                       geom=dict(pos=(50,250,0))))
                              
         self.parts = part.Group("parts",[view,tools])
+        for coords,mname in self.level.monsters.items():
+            self.add_monster_to_view(coords,mname)
+
         self.parts.restyle(True)
 
 
@@ -101,6 +120,8 @@ class EditorWindow(pyglet.window.Window):
             self.set_cell_code(basic_hexes[sym])
         elif sym == pygkey.H:
             self.set_hex_colour()
+        elif sym == pygkey.M:
+            self.toggle_monster()
             
     def on_mouse_press(self,x,y,button,mods):
         if x < 768:
@@ -108,6 +129,34 @@ class EditorWindow(pyglet.window.Window):
         else:
             self.click_in_tools(x,y,button,mods)
 
+    def toggle_monster(self):
+        if self.cellcode in self.monster_list:
+            self.monster_list = self.monster_list[1:] + self.monster_list[:1]
+        self.set_cell_code(self.monster_list[0])
+
+    def add_monster_to_view(self,coords,monstername):
+        M = getattr(monsters,monstername)
+        mname = repr(coords)
+        m = M(mname)
+        m.pos = collision.h_centre(*coords)
+        m.restyle(True)
+        self.parts["view"].append(m)
+
+    def place_monster(self,coords,monstername):
+        self.unplace_monster(coords)
+        self.level.monsters[coords] = monstername
+        self.add_monster_to_view(coords,monstername)
+
+    def unplace_monster(self,coords):
+        if coords in self.level.monsters:
+            del self.level.monsters[coords]
+        mname = repr(coords)
+        view = self.parts["view"]
+        m = view[mname]
+        if m:
+            view.remove[m]
+        
+        
     def click_in_grid(self,x,y,button,mods):
         if button != 1: return
         fx = x/768.0 * 40
@@ -126,6 +175,10 @@ class EditorWindow(pyglet.window.Window):
             if (coords not in [level.start,level.exit]
                 and coords in level.hexes):
                 del level.hexes[coords]
+            if coords in level.monsters:
+                self.unplace_monster(coords)
+        elif self.cellcode in self.monster_list:
+            self.place_monster(coords,self.cellcode)
         else:
             self.level.hexes[coords] = self.cellcode
         self.hexfield.build_dl()

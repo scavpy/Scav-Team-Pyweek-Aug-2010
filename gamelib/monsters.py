@@ -104,4 +104,20 @@ class Hunter(Monster):
             self.turn_to(direction)
             self.pos = where
 
-        
+MonsterStyles = {
+    "Wanderer": {"obj-filename":"crab.obj",
+                 "mtl-override-pieces":["Body"],
+                 "override-mtl":"Blood"},
+    "Hunter": {"obj-filename":"crab.obj",
+               "mtl-override-pieces":["Body"],
+               "override-mtl":"Chocolate"},
+    "Squashy": {"obj-filename":"crab.obj",
+               "mtl-override-pieces":["Body"],
+               "override-mtl":"White"},
+    "Monster": {"obj-filename":"crab.obj",
+               "mtl-override-pieces":["Body"],
+               "override-mtl":"Steel"},
+    "Shuttler": {"obj-filename":"crab.obj",
+               "mtl-override-pieces":["Body"],
+               "override-mtl":"Steel"},
+    }
