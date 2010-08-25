@@ -101,6 +101,8 @@ class Hunter(Monster):
             self.turn_to(what.velocity * -1)
             self.harm_type = "provoked a"
             self.pos = what.pos
+            # Eat the ball!
+            what._expired = True
         else:
             self.turn_to(direction)
             self.pos = where
