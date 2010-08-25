@@ -37,7 +37,7 @@ class Screen(part.Group):
             "bd_margin":18,"bd_radius":42, "bd_round:":0,
             },
         "LabelPanel": { "font":"ExperiMental" },
-        "LabelPanel.storytext": {"font_size":24},
+        "LabelPanel.storytext": {"font_size":30},
         }
 
     def __init__(self,name="",**kw):
@@ -195,9 +195,11 @@ class GameScreen(Screen):
         self.score += points
         self["frame"].update_label("score","{0:05}",self.score)
 
-    def add_ball(self,velocity):
+    def add_ball(self,velocity,maxdestroy=4):
         r = 0.2
-        ball = Ball(velocity=velocity,geom=dict(radius=r))
+        ball = Ball(velocity=velocity,
+                    maxdestroy=maxdestroy,
+                    geom=dict(radius=r))
         player = self.player
         pr = player.getgeom('radius',0.49)
         ball.pos = velocity.normalise() * (r + pr + 0.1) + player.pos
@@ -306,6 +308,7 @@ class GameScreen(Screen):
                         points = self.hexfield.destroy(hc,hr)
                         if points:
                             ball.maxdestroy -= 1
+                            ball.duration -= 1000
                             self.inc_score(points)
                     break
             ball.pos = newpos
