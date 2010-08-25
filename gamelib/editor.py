@@ -154,7 +154,7 @@ class EditorWindow(pyglet.window.Window):
         view = self.parts["view"]
         m = view[mname]
         if m:
-            view.remove[m]
+            view.remove(m)
         
         
     def click_in_grid(self,x,y,button,mods):
