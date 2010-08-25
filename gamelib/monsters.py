@@ -67,6 +67,7 @@ class Shuttler(Monster):
         self.pos = where
 
 class Squashy(Monster):
+    _default_geom = {"radius":0.7}
     harm_type = "contaminated by a"
     """ On collision with a ball, die"""
     def on_collision(self,what,where,direction):
