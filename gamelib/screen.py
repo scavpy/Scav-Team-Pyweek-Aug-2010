@@ -4,6 +4,7 @@ Screen module.
 The game is divided into Screens
 """
 import pickle
+import random
 import pyglet
 from pyglet.window import key as pygletkey
 from math import atan2,degrees,radians,sin,cos
@@ -18,6 +19,7 @@ from tdgl.vec import Vec
 import graphics
 import collision
 import levelfile
+import monsters
 import main # for options
 from graphics import ClockPart, Ball, Player, ScreenFrame
 
@@ -105,8 +107,10 @@ class GameScreen(Screen):
             "bg_margin":10,"bg_radius":20, "bg_round:":0,
             "bd_margin":10,"bd_radius":20, "bd_round:":0,
             },
-        "#player":{ "obj-filename":"crab.obj" },
-        "Ball":{"obj-filename":"faceball.obj"},
+        "#player":{ "obj-filename":"crab.obj",
+                   "mtl-override-pieces":["Body"],
+                   "override-mtl":"Gold"},
+        "Ball":{ "obj-filename":"prismball.obj" },
         }
 
     def __init__(self,name="",level=None,levelnum=1,score=0,**kw):
@@ -114,9 +118,9 @@ class GameScreen(Screen):
             level = self.find_level(levelnum)
         self.level = level
         self.levelnum = levelnum
-
         self.score = score
         self.light = lighting.claim_light()
+        stylesheet.load(monsters.MonsterStyles)
         super(GameScreen,self).__init__(name,**kw)
         self.set_mode("playing")
         Sin60 = collision.Sin60
@@ -176,10 +180,12 @@ class GameScreen(Screen):
         self.player = player
         self.hexfield = hf
         balls = part.Group("balls",[])
-        sv = SceneView("scene",[hf,player,balls])
+        monsters = part.Group("monsters",
+                              self.build_monsters(self.level))
+        sv = SceneView("scene",[hf,player,balls,monsters])
         sv.camera.look_at((x,y,0),10)
         sv.camera.look_from_spherical(87,-90,300)
-        sv.camera.look_from_spherical(87,-90,100,1000)
+        sv.camera.look_from_spherical(80,-90,100,1000)
         self.camera = sv.camera
         with sv.compile_style():
             glEnable(GL_LIGHTING)
@@ -187,6 +193,25 @@ class GameScreen(Screen):
         lighting.light_colour(self.light,(1,1,1,1))
         lighting.light_switch(self.light,True)
         self.append(sv)
+        
+    def build_monsters(self,level):
+        ms = []
+        count = 0
+        for coords, classname in level.monsters.items():
+            pos = collision.h_centre(*coords)
+            M = getattr(monsters,classname,monsters.Monster)
+            if classname == "Hunter" or coords == level.exit:
+                vel = Vec(0,0)
+            else: # random direction and speed
+                vel = (random.choice(collision.H_NORMAL) *
+                       random.gauss(1.0,0.02) * 0.01)
+            m = M("{0}{1}".format(classname,count),
+                  velocity=vel,
+                  geom=dict(pos=pos,angle=0))
+            count += 1
+            ms.append(m)
+        return ms
+
         
     def setup_style(self):
         lighting.setup()
@@ -225,10 +250,10 @@ class GameScreen(Screen):
         self.keysdown.add(sym)
         if sym == pygletkey.F3:
             if self.first_person:
-                self.camera.look_from_spherical(87,-90,100,200)
+                self.camera.look_from_spherical(80,-90,100,200)
                 self.first_person = False
             else:
-                self.camera.look_from_spherical(30,self.player.angle + 180,20,200)
+                self.camera.look_from_spherical(30,self.player.angle + 180,30,200)
                 self.first_person = True
         elif sym == pygletkey.ESCAPE:
             self.player_die("boredom")
@@ -248,13 +273,15 @@ class GameScreen(Screen):
         if self.keysdown:
             if self.first_person:
                 a = self.player.angle
-                if pygletkey.LEFT in self.keysdown:
+                if pygletkey.A in self.keysdown:
                     a += 10
-                if pygletkey.RIGHT in self.keysdown:
+                if pygletkey.D in self.keysdown:
                     a -= 10
                 theta = radians(a)
-                if pygletkey.UP in self.keysdown:
+                if pygletkey.W in self.keysdown:
                     v = Vec(cos(theta),sin(theta)) * ms * 0.01
+                elif pygletkey.S in self.keysdown:
+                    v = Vec(cos(theta),sin(theta)) * ms * -0.01                    
                 else:
                     v = Vec(0,0)
                 dx,dy,dz = v
@@ -315,6 +342,41 @@ class GameScreen(Screen):
             if (ball.pos - ppos).length() < (r + pr):
                 self.player_die("ball trauma")
 
+    def step_monsters(self,ms):
+        player = self.player
+        pr = player.getgeom('radius',0.49)
+        ppos = player.pos
+        for mon in self["monsters"].contents:
+            v = mon.velocity * ms
+            mx,my,mz = pos = mon.pos
+            newpos = v + pos
+            r = mon.getgeom('radius',0.49)
+            obstacles = self.level.obstacles_near(mx,my)
+            collided = False
+            for hc,hr,cell in obstacles:
+                P = collision.collides(hc,hr,pos,r,v,collision.COLLIDE_REBOUND)
+                if P:
+                    newpos, mv_times_ms = P
+                    velocity = mv_times_ms * (1/ms)
+                    mon.on_collision(None,newpos,velocity)
+                    collided = True
+                    break
+            if not collided:
+                for ball in self["balls"].contents:
+                    br = ball.getgeom("radius")
+                    if (ball.pos - newpos).length() < (r + br):
+                        mon.on_collision(ball,newpos,mon.velocity)
+                        collided = True
+                        break
+            if mon._expired:
+                return
+            if not collided:
+                mon.pos = newpos
+            if (mon.pos - ppos).length() < (r + pr):
+                self.player_die("{0} {1}".format(
+                        mon.harm_type,
+                        mon.__class__.__name__))
+
     def player_die(self,died_of=""):
         self.exit_to(ScoreScreen,score=self.score,died_of=died_of)
 
@@ -322,6 +384,7 @@ class GameScreen(Screen):
         if self.reload > 0:
             self.reload = max(0,self.reload - ms)
         self.step_player(ms)
+        self.step_monsters(ms)
         self.step_balls(ms)
         self.step_contents(ms)
 

@@ -22,6 +22,14 @@ Ks 0.8 0.4 1.0 1.0
 d 1
 illum 2
 
+newmtl Blood
+Ns 40
+Ka 0.5 0.12 0.0 1.0
+Kd 0.5 0.12 0.0 1.0
+Ks 0.8 0.8 0.0 1.0
+d 1
+illum 2
+
 newmtl White
 Ns 40
 Ka 0.0 0.0 0.0 1.0

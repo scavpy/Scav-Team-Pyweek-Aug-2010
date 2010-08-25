@@ -36,6 +36,9 @@ def main():
         width = height = None
     else:
         width,height = [int(c) for c in options.size.split(",")]
+    
+    import tdgl.material
+    tdgl.material.load("materials.mtl")
 
     from gamewindow import GameWindow
     win = GameWindow(width=width,height=height,
