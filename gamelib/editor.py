@@ -42,7 +42,7 @@ class EditorWindow(pyglet.window.Window):
             self.level.name = options.name
         if options.story:
             with open(options.story,"ru") as f:
-                self.level.story = f.read.split("\n\n")
+                self.level.story = f.read().split("\n\n")
         self.cellcode = "#"
         self.rgb = [1,1,1]
         stylesheet.load(monsters.MonsterStyles)
