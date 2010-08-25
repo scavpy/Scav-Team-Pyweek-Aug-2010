@@ -39,11 +39,12 @@ class Screen(part.Group):
             "bd_margin":18,"bd_radius":42, "bd_round:":0,
             },
         "LabelPanel": { "font":"ExperiMental" },
-        "LabelPanel.storytext": {"font_size":30,
-                                 "fg":(1,1,1,1),
-                                 "bg_margin":30,
-                                 "border":None,
-                                 "bg":(0,0,0,0.5)},
+        "StoryPanel.storytext": {
+            "font_size":30, "font":"ExperiMental",
+            "fg":(1,1,1,1),
+            "bg_margin":30,
+            "border":None,
+            "bg":(0,0,0,0.5)},
         }
 
     def __init__(self,name="",**kw):
@@ -202,6 +203,7 @@ class GameScreen(Screen):
         sv.camera.look_from_spherical(87,-90,300)
         sv.camera.look_from_spherical(80,-90,100,1000)
         self.camera = sv.camera
+        self.camera.step(1)
         with sv.compile_style():
             glEnable(GL_LIGHTING)
         lighting.light_position(self.light,(10,10,10,0))
@@ -235,7 +237,7 @@ class GameScreen(Screen):
             pn.prepare()
             self.story_page = s
         else:
-            self.remove(pn)
+            self["frame"].remove(pn)
             self.set_mode("playing")
         
     def setup_style(self):
@@ -420,6 +422,8 @@ class GameScreen(Screen):
         lighting.light_colour(self.light,(0,0,0,0),self.dying_time)
 
     def step(self,ms):
+        if ms == 0:
+            return
         if self.mode == "story":
             return
         if self.reload > 0:
