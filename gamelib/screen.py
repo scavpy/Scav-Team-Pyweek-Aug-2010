@@ -47,7 +47,7 @@ class Screen(part.Group):
         self.build_parts(**kw)
         stylesheet.load(self._screen_styles)
         self.restyle(True)
-        self.music = None
+        self.set_music()
 
     @staticmethod
     def screen_order():
@@ -96,6 +96,10 @@ class Screen(part.Group):
 
     def cleanup(self):
         pass
+
+    def set_music(self):
+        mixer.music.fadeout(1000)
+
 
 
 class GameScreen(Screen):
@@ -233,7 +237,7 @@ class GameScreen(Screen):
              
     def click(self,x,y,button,mods):
         """ Click to fire """
-        if button != 1:
+        if button != 1 or self.mode == "dying":
             return
         if self.reload:
             return
@@ -244,9 +248,11 @@ class GameScreen(Screen):
             vx,vy,vw,vh = self.vport
             v = Vec(x - (vx + vw//2), y - (vy + vh//2)).normalise() * 0.01
         self.add_ball(v)
-        self.reload = 500
+        self.reload = 300
 
     def keydown(self,sym,mods):
+        if self.mode == "dying":
+            return
         self.keysdown.add(sym)
         if sym == pygletkey.F3:
             if self.first_person:
@@ -261,6 +267,7 @@ class GameScreen(Screen):
             a = radians(self.player.angle)
             v = Vec(cos(a),sin(a)) * 0.01 # per ms
             self.add_ball(v)
+            self.reload = 300
 
     def keyup(self,sym,mods):
         try:
@@ -318,6 +325,7 @@ class GameScreen(Screen):
 
     def step_balls(self,ms):
         player = self.player
+        dying = (self.mode == "dying")
         pr = player.getgeom('radius',0.49)
         ppos = player.pos
         for ball in self["balls"].contents:
@@ -331,7 +339,7 @@ class GameScreen(Screen):
                 if P:
                     newpos, bv_times_ms = P
                     ball.velocity = bv_times_ms * (1/ms)
-                    if ball.maxdestroy > 0:
+                    if ball.maxdestroy > 0 and not dying:
                         points = self.hexfield.destroy(hc,hr)
                         if points:
                             ball.maxdestroy -= 1
@@ -339,11 +347,12 @@ class GameScreen(Screen):
                             self.inc_score(points)
                     break
             ball.pos = newpos
-            if (ball.pos - ppos).length() < (r + pr):
+            if not dying and (ball.pos - ppos).length() < (r + pr):
                 self.player_die("ball trauma")
 
     def step_monsters(self,ms):
         player = self.player
+        dying = (self.mode == "dying")
         pr = player.getgeom('radius',0.49)
         ppos = player.pos
         for mon in self["monsters"].contents:
@@ -361,7 +370,7 @@ class GameScreen(Screen):
                     mon.on_collision(None,newpos,velocity)
                     collided = True
                     break
-            if not collided:
+            if not collided and not dying:
                 for ball in self["balls"].contents:
                     br = ball.getgeom("radius")
                     if (ball.pos - newpos).length() < (r + br):
@@ -372,28 +381,40 @@ class GameScreen(Screen):
                 return
             if not collided:
                 mon.pos = newpos
-            if (mon.pos - ppos).length() < (r + pr):
+            if not dying and (mon.pos - ppos).length() < (r + pr):
                 self.player_die("{0} {1}".format(
                         mon.harm_type,
                         mon.__class__.__name__))
 
-    def player_die(self,died_of=""):
-        self.exit_to(ScoreScreen,score=self.score,died_of=died_of)
+    def player_die(self,dying_of=""):
+        self.set_mode("dying")
+        self.dying_of = dying_of
+        self.dying_time = 3000
+        lighting.light_colour(self.light,(0,0,0,0),self.dying_time)
 
     def step(self,ms):
         if self.reload > 0:
             self.reload = max(0,self.reload - ms)
-        self.step_player(ms)
         self.step_monsters(ms)
         self.step_balls(ms)
         self.step_contents(ms)
+        if self.mode == "dying":
+            lighting.step(ms)
+            if self.dying_time <= 0:
+                self.exit_to(ScoreScreen,score=self.score,died_of=self.dying_of)
+            else:
+                self.dying_time -= ms
+        else:
+            self.step_player(ms)
 
 class TitleScreen(Screen):
 
-    def build_parts(self,**kw):
-        # Playing music in a common function between screens
+    def set_music(self):
         mixer.music.load(MUSIC.get("title"))
         mixer.music.play(-1)
+
+    def build_parts(self,**kw):
+        # Playing music in a common function between screens
         start_btn = panel.LabelPanel(
             "Start", text=" Start ",
             geom=dict(pos=(512,200,0)),
@@ -470,7 +491,7 @@ class ScoreScreen(Screen):
         super(ScoreScreen,self).__init__(**kw)
         
     def build_parts(self,**kw):
-        mixer.music.stop()
+        mixer.music.fadeout(1000)
         pn = panel.LabelPanel(
             "finalscore", text="Your Score: {0}".format(self.score),
             geom=dict(pos=(512,600,0)))
