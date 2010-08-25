@@ -46,8 +46,6 @@ H_CORNER = [Vec(1,0),Vec(0.5,Sin60),Vec(-0.5,Sin60),
 H_SIDE = [H_CORNER[(i+1) % 6] - v for i,v in enumerate(H_CORNER)]
 H_NORMAL = [Vec(v.y,-v.x) for v in H_SIDE]
 
-DEBUG = False
-
 def h_centre(hcol,hrow):
     """position vector of hexagon centre"""
     return Vec(hcol * 1.5, hrow * R3 + Sin60 * (hcol % 2))
