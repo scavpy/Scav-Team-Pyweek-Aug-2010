@@ -6,7 +6,7 @@ pyglet.resource.reindex()
 import pyglet.window.key as pygkey
 
 from tdgl.gl import *
-from tdgl import viewpoint, lighting
+from tdgl import viewpoint, lighting, part
 
 import levelfile, collision, graphics
 
@@ -22,10 +22,6 @@ basic_hexes = {pygkey.R:"Hf00",
 class EditorWindow(pyglet.window.Window):
     def __init__(self,fname=None,**kw):
         super(EditorWindow,self).__init__(**kw)
-        self.view = viewpoint.OrthoView(
-            "view",[],
-            geom=dict(left=0, right=40, top=30, bottom=0),
-            style={"ClearColor":(0.2,0.2,0.2,0)})
         self.level = None
         self.fname = fname
         if fname:
@@ -37,18 +33,33 @@ class EditorWindow(pyglet.window.Window):
         if options.story:
             with open(options.story,"ru") as f:
                 self.level.story = f.read.split("\n\n")
+        self.cellcode = "#"
+        self.build_parts()
+
+    def build_parts(self):
+        view = viewpoint.OrthoView(
+            "view",[],
+            geom=dict(left=0, right=40, top=40, bottom=0,
+                      vport=(0,0,768,768)),
+            style={"ClearColor":(0.2,0.2,0.2,0)})
         self.hexfield = graphics.HexagonField(
             "field",self.level)
-        self.view.append(self.hexfield)
-        with self.view.compile_style():
+        view.append(self.hexfield)
+        with view.compile_style():
             glEnable(GL_LIGHTING)
         self.light = lighting.claim_light()
         lighting.light_position(self.light,(10,10,10,0))
         lighting.light_colour(self.light,(1,1,1,1))
         lighting.light_switch(self.light,True)
-        lighting.step(1)
-        self.cellcode = "#"
-        self.view.restyle(True)
+        lighting.setup()
+        tools = viewpoint.OrthoView(
+            "tools",[],
+            geom=dict(left=0,right=100,top=300,bottom=0,
+                      vport=(768,0,(1024-768),768)),
+            style={"ClearColor":(0,0,0,0)})
+        self.parts = part.Group("parts",[view,tools])
+        self.parts.restyle(True)
+
 
     def on_key_press(self,sym,mods):
         if sym == pygkey.S and mods & pygkey.MOD_CTRL:
@@ -59,9 +70,15 @@ class EditorWindow(pyglet.window.Window):
             self.cellcode = basic_hexes[sym]
             
     def on_mouse_press(self,x,y,button,mods):
+        if x < 768:
+            self.click_in_grid(x,y,button,mods)
+        else:
+            self.click_in_tools(x-768,y,button,mods)
+
+    def click_in_grid(self,x,y,button,mods):
         if button != 1: return
-        fx = x/1024.0 * 40
-        fy = y/768.0 * 30
+        fx = x/768.0 * 40
+        fy = y/768.0 * 40
         coords = collision.nearest_neighbours(fx,fy,0).next()
         level = self.level
         if self.cellcode == "S":
@@ -77,14 +94,16 @@ class EditorWindow(pyglet.window.Window):
         self.hexfield.build_dl()
         self.hexfield.prepare()
 
+    def click_in_tools(self,x,y,button,mods):
+        pass
+
     def on_draw(self):
-        self.clear()
-        tdgl_draw_parts(self.view)
+        tdgl_draw_parts(self.parts)
 
     def on_resize(self,w,h):
-        s = self.view
-        s.resize(w,h)
-        s.restyle()
+        self.parts["view"].resize(w,h)
+        self.parts["tools"].resize(w,h)
+        self.parts.restyle()
         return True
 
 if __name__ == '__main__':
