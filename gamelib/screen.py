@@ -21,7 +21,7 @@ import collision
 import levelfile
 import monsters
 import main # for options
-from graphics import ClockPart, Ball, Player, ScreenFrame
+from graphics import ClockPart, Ball, Player, ScreenFrame, StoryPanel
 
 MUSIC = {
     "title":"data/sound/subterranean.ogg",
@@ -39,7 +39,11 @@ class Screen(part.Group):
             "bd_margin":18,"bd_radius":42, "bd_round:":0,
             },
         "LabelPanel": { "font":"ExperiMental" },
-        "LabelPanel.storytext": {"font_size":30},
+        "LabelPanel.storytext": {"font_size":30,
+                                 "fg":(1,1,1,1),
+                                 "bg_margin":30,
+                                 "border":None,
+                                 "bg":(0,0,0,0.5)},
         }
 
     def __init__(self,name="",**kw):
@@ -126,7 +130,8 @@ class GameScreen(Screen):
         self.light = lighting.claim_light()
         stylesheet.load(monsters.MonsterStyles)
         super(GameScreen,self).__init__(name,**kw)
-        self.set_mode("playing")
+        self.set_mode("story" if self.story_page is not None
+                      else "playing")
         Sin60 = collision.Sin60
         self.movekeys = {
             # Gamer keys
@@ -162,10 +167,11 @@ class GameScreen(Screen):
         return levelfile.load_level(fname)
 
     def build_parts(self,**kw):
+        level = self.level
         ov = ScreenFrame()
         ov.add_label(
             "level_indicator",
-            "{0} ({1})".format(self.level.name,self.levelnum))
+            "{0} ({1})".format(level.name,self.levelnum))
         ov.add_label("score",
                      "{0:05}".format(self.score),
                      top=False,left=False)
@@ -174,10 +180,15 @@ class GameScreen(Screen):
             glDisable(GL_LIGHTING)
         if main.options.time:
             ov.append(ClockPart(geom=dict(pos=(50,50,0))))
+        if level.story:
+            ov.append(StoryPanel("story",level.story[0]))
+            self.story_page = 0
+        else:
+            self.story_page = None
         self.append(ov)
         hf = graphics.HexagonField("hexfield",self.level)
-        pu,pv = self.level.start
-        self.player_exit = self.level.exit
+        pu,pv = level.start
+        self.player_exit = level.exit
         x,y = graphics.hex_to_world_coords(pu,pv)
         player = Player(name="player",
             geom=dict(pos=(x,y,0),radius=0.49))
@@ -216,6 +227,16 @@ class GameScreen(Screen):
             ms.append(m)
         return ms
 
+    def dismiss_story_page(self):
+        s = self.story_page + 1
+        pn = self["story"]
+        if s < len(self.level.story):
+            pn.text = self.level.story[s]
+            pn.prepare()
+            self.story_page = s
+        else:
+            self.remove(pn)
+            self.set_mode("playing")
         
     def setup_style(self):
         lighting.setup()
@@ -239,6 +260,9 @@ class GameScreen(Screen):
         """ Click to fire """
         if button != 1 or self.mode == "dying":
             return
+        if self.mode == "story":
+            self.dismiss_story_page()
+            return
         if self.reload:
             return
         if self.first_person:
@@ -252,6 +276,9 @@ class GameScreen(Screen):
 
     def keydown(self,sym,mods):
         if self.mode == "dying":
+            return
+        if self.mode == "story":
+            self.dismiss_story_page()
             return
         self.keysdown.add(sym)
         if sym == pygletkey.F3:
@@ -393,6 +420,8 @@ class GameScreen(Screen):
         lighting.light_colour(self.light,(0,0,0,0),self.dying_time)
 
     def step(self,ms):
+        if self.mode == "story":
+            return
         if self.reload > 0:
             self.reload = max(0,self.reload - ms)
         self.step_monsters(ms)
@@ -451,11 +480,7 @@ or hexagon in your life..."""
 
     def build_parts(self,**kw):
         mixer.music.stop()
-        pn = panel.LabelPanel(
-            "the_end", text=self.victory_text,
-            geom=dict(pos=(512,400,0),
-                      text_width=800),
-            style_classes=['storytext'])
+        pn = StoryPanel("the_end", text=self.victory_text)
         ok_btn = panel.LabelPanel(
             "ok", text=" Finally! ",
             geom=dict(pos=(512,100,0)),
