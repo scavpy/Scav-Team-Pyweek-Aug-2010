@@ -60,6 +60,7 @@ User Stories
 15. At the start of each level, some narrative text is overlaid on the
     screen, until dismissed by a key press or mouse click. This should
     be white text on alpha < 1 black.
+    (scav) branch: storytime, status: done
 
 16. The title screen should play the title-page music.
     (Threads) branch: music, status: done
@@ -75,6 +76,17 @@ User Stories
     ball kills some monsters; others are indestructible.
     (scav) branch: monsters, status: done
 
+20. There will be sound effects for the following events:
+    a.  breaking a hexagon
+    b.  ball hitting each kind of monster
+    c.  escaping from a level
+    d.  being hit by the ball
+    e.  begin caught by each kind of monster
+    f.  player dying
+    Some of these may be the same. (e.g. enraging and being eaten by a
+    hunter may be the same sound)
+
+21. The last level will have a special monster.
 
 
 
