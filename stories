@@ -73,7 +73,7 @@ User Stories
 19. Monsters will roam the grid. They move randomly or bounce around like
     the ball.  Contact with the player kills the player. Contact with the
     ball kills some monsters; others are indestructible.
-    (scav) branch: monsters, status: dev    
+    (scav) branch: monsters, status: done
 
 
 
