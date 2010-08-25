@@ -28,6 +28,10 @@ MUSIC = {
     "gameplay":None,
     }
 
+SOUNDS = {
+    "crack":"data/sound/crack.ogg",
+}
+
 class Screen(part.Group):
     _next = None
     _screen_styles = {
@@ -155,6 +159,7 @@ class GameScreen(Screen):
         glGetIntegerv(GL_VIEWPORT, vport)
         self.vport = tuple(vport)
         self.reload = 0
+        self.sounds = dict((k,mixer.Sound(v)) for k,v in SOUNDS.items())
 
             
     def __del__(self):
@@ -371,6 +376,7 @@ class GameScreen(Screen):
                     if ball.maxdestroy > 0 and not dying:
                         points = self.hexfield.destroy(hc,hr)
                         if points:
+                            self.sounds["crack"].play()
                             ball.maxdestroy -= 1
                             ball.duration -= 1000
                             self.inc_score(points)
@@ -447,7 +453,6 @@ class TitleScreen(Screen):
         mixer.music.play(-1)
 
     def build_parts(self,**kw):
-        # Playing music in a common function between screens
         start_btn = panel.LabelPanel(
             "Start", text=" Start ",
             geom=dict(pos=(512,200,0)),
