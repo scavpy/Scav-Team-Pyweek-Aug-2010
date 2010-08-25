@@ -18,6 +18,7 @@ from tdgl.vec import Vec
 import graphics
 import collision
 import levelfile
+import monsters
 import main # for options
 from graphics import ClockPart, Ball, Player, ScreenFrame
 
@@ -106,7 +107,12 @@ class GameScreen(Screen):
             "bd_margin":10,"bd_radius":20, "bd_round:":0,
             },
         "#player":{ "obj-filename":"crab.obj" },
-        "Ball":{"obj-filename":"faceball.obj"},
+        "Ball":{ "obj-filename":"prismball.obj" },
+        "Wanderer": {"obj-filename":"crab.obj" },
+        "Hunter": {"obj-filename":"crab.obj" },
+        "Squashy": {"obj-filename":"crab.obj" },
+        "Monster": {"obj-filename":"crab.obj" },
+        "Shuttler": {"obj-filename":"crab.obj" },
         }
 
     def __init__(self,name="",level=None,levelnum=1,score=0,**kw):
@@ -176,7 +182,9 @@ class GameScreen(Screen):
         self.player = player
         self.hexfield = hf
         balls = part.Group("balls",[])
-        sv = SceneView("scene",[hf,player,balls])
+        monsters = part.Group("monsters",
+                              self.build_monsters(self.level))
+        sv = SceneView("scene",[hf,player,balls,monsters])
         sv.camera.look_at((x,y,0),10)
         sv.camera.look_from_spherical(87,-90,300)
         sv.camera.look_from_spherical(87,-90,100,1000)
@@ -187,6 +195,21 @@ class GameScreen(Screen):
         lighting.light_colour(self.light,(1,1,1,1))
         lighting.light_switch(self.light,True)
         self.append(sv)
+        
+    def build_monsters(self,level):
+        """ TODO: do this properly """
+        ms = []
+        count = 0
+        if not level.monsters:
+            level.monsters[level.exit] = "Hunter"
+        for coords, classname in level.monsters.items():
+            pos = collision.h_centre(*coords)
+            M = getattr(monsters,classname,monsters.Monster)
+            m = M("{0}{1}".format(classname,count),
+                  geom=dict(pos=pos,angle=0))
+            ms.append(m)
+        return ms
+
         
     def setup_style(self):
         lighting.setup()
@@ -315,6 +338,41 @@ class GameScreen(Screen):
             if (ball.pos - ppos).length() < (r + pr):
                 self.player_die("ball trauma")
 
+    def step_monsters(self,ms):
+        player = self.player
+        pr = player.getgeom('radius',0.49)
+        ppos = player.pos
+        for mon in self["monsters"].contents:
+            v = mon.velocity * ms
+            mx,my,mz = pos = mon.pos
+            newpos = v + pos
+            r = mon.getgeom('radius',0.49)
+            obstacles = self.level.obstacles_near(mx,my)
+            collided = False
+            for hc,hr,cell in obstacles:
+                P = collision.collides(hc,hr,pos,r,v,collision.COLLIDE_REBOUND)
+                if P:
+                    newpos, mv_times_ms = P
+                    velocity = mv_times_ms * (1/ms)
+                    mon.on_collision(None,newpos,velocity)
+                    collided = True
+                    break
+            if not collided:
+                for ball in self["balls"].contents:
+                    br = ball.getgeom("radius")
+                    if (ball.pos - newpos).length() < (r + br):
+                        mon.on_collision(ball,newpos,mon.velocity)
+                        collided = True
+                        break
+            if mon._expired:
+                return
+            if not collided:
+                mon.pos = newpos
+            if (mon.pos - ppos).length() < (r + pr):
+                self.player_die("{0} {1}".format(
+                        mon.harm_type,
+                        mon.__class__.__name__))
+
     def player_die(self,died_of=""):
         self.exit_to(ScoreScreen,score=self.score,died_of=died_of)
 
@@ -322,6 +380,7 @@ class GameScreen(Screen):
         if self.reload > 0:
             self.reload = max(0,self.reload - ms)
         self.step_player(ms)
+        self.step_monsters(ms)
         self.step_balls(ms)
         self.step_contents(ms)
 
