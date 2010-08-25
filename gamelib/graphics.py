@@ -67,9 +67,10 @@ class HexagonField(part.Part):
         self.cells = {} # {(u,v):dl_offset}
         if self.ndl:
             glDeleteLists(self.dlbase, self.ndl)
-        self.celltypes = {}
+        # first display list is a blank cell
+        self.celltypes = {' ':CellType(0,True)}
         for i,ct in enumerate(sorted(level.celltypes)):
-            self.celltypes[ct] = CellType(i,ct in " SX")
+            self.celltypes[ct] = CellType(i+1,ct in " SX")
         numtypes = len(level.celltypes)
         for coords,cellcode in level.hexes.items():
             ct = self.celltypes[cellcode]
