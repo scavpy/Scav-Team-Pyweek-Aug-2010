@@ -7,6 +7,7 @@
   "start": (col,row),
   "exit": (col,row),
   "monsters": { (col,row): monster_code },
+  "sound": sfx_name,
  }
 
  Cell code
@@ -28,14 +29,14 @@ import copy
 import collision
 
 class Level:
-    _defaults = {
-        "name":"a level",
-        "story":[],
-        "hexes":{},
-        "start":(0,0),
-        "exit":(2,0),
-        "monsters":{}}
-    def __init__(self,leveldict=_defaults):
+    def __init__(self,leveldict):
+        self.name = "a level"
+        self.story = []
+        self.hexes = {}
+        self.start = (2,2)
+        self.exit = (8,8)
+        self.sound = None
+        self.monsters = {}
         self.__dict__.update(copy.deepcopy(leveldict))
         # sanity check
         for coords in list(self.monsters):
@@ -51,7 +52,8 @@ class Level:
     def save(self,fname):
         d = dict(name=self.name, story=self.story,
                  start=self.start, exit=self.exit,
-                 hexes=self.hexes, monsters=self.monsters)
+                 hexes=self.hexes, monsters=self.monsters,
+                 sound=self.sound)
         with open(os.path.join("data",fname),"wb") as f:
             pickle.dump(d,f,-1)
 

@@ -43,6 +43,8 @@ class EditorWindow(pyglet.window.Window):
         if options.story:
             with open(options.story,"ru") as f:
                 self.level.story = f.read().split("\n\n")
+        if options.sound:
+            self.level.sound = options.sound
         self.cellcode = "#"
         self.rgb = [1,1,1]
         stylesheet.load(monsters.MonsterStyles)
@@ -256,6 +258,7 @@ if __name__ == '__main__':
     op = OptionParser("usage: %prog [options] fname")
     add = op.add_option
     add("--story",default=None,help="Story file to use for level")
+    add("--sound",default=None,help="Sound effect to announce level")
     add("--name",default=None,help="Level name")
     options,args = op.parse_args()
     if len(args) != 1:
