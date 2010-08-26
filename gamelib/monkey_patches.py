@@ -24,3 +24,5 @@ def fix_panel_del(self):
         glDeleteLists(self.bgdl,2)
 
 panel.Panel.__del__ = fix_panel_del
+
+pyglet.image.Texture.transparent = False # don't ask...
