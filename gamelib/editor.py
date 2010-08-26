@@ -24,6 +24,7 @@ basic_hexes = {pygkey.R:"Hf00",
                pygkey.X:"X",
                pygkey.S:"S",
                pygkey.DELETE:None,
+               pygkey.O:"O",
                }
 
 TOOLW = 1024-768
@@ -65,6 +66,7 @@ class EditorWindow(pyglet.window.Window):
         view = viewpoint.OrthoView(
             "view",[],
             geom=dict(left=0, right=40, top=40, bottom=0,
+                      near=-1.6,
                       vport=(0,0,WIDTH,HEIGHT)),
             style={"ClearColor":(0.2,0.2,0.2,0)})
         self.hexfield = graphics.HexagonField(
