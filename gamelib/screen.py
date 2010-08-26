@@ -30,6 +30,7 @@ MUSIC = {
 
 SOUNDS = {
     "crack":"data/sound/crack.ogg",
+    "ow":"data/sound/ow.ogg",
 }
 
 class Screen(part.Group):
@@ -422,6 +423,7 @@ class GameScreen(Screen):
                         mon.__class__.__name__))
 
     def player_die(self,dying_of=""):
+        self.sounds["ow"].play()
         self.set_mode("dying")
         self.dying_of = dying_of
         self.dying_time = 3000
@@ -440,7 +442,10 @@ class GameScreen(Screen):
         if self.mode == "dying":
             lighting.step(ms)
             if self.dying_time <= 0:
-                self.exit_to(ScoreScreen,score=self.score,died_of=self.dying_of)
+                self.exit_to(ScoreScreen,
+                             score=self.score,
+                             levelnum=self.levelnum,
+                             died_of=self.dying_of)
             else:
                 self.dying_time -= ms
         else:
@@ -519,9 +524,10 @@ class ScoreScreen(Screen):
             "font":"Courier",
             "font_size":20 },
         }
-    def __init__(self,score,died_of="",**kw):
+    def __init__(self,score,died_of="",levelnum=None,**kw):
         self.score = score
         self.died_of = died_of
+        self.levelnum = levelnum
         super(ScoreScreen,self).__init__(**kw)
         
     def build_parts(self,**kw):
@@ -529,13 +535,26 @@ class ScoreScreen(Screen):
         pn = panel.LabelPanel(
             "finalscore", text="Your Score: {0}".format(self.score),
             geom=dict(pos=(512,600,0)))
-        ok_btn = panel.LabelPanel(
-            "ok", text=" OK ",
-            geom=dict(pos=(512,100,0)),
-            style_classes=['button'])
         ov = OrthoView(
-            "ortho", [pn,ok_btn],
+            "ortho", [pn],
             geom=dict(left=0,right=1024,top=768,bottom=0))
+        if self.levelnum is None:
+            quit_btn = panel.LabelPanel(
+                "ok", text=" OK ",
+                geom=dict(pos=(512,100,0)),
+                style_classes=['button'])
+            ov.append(quit_btn)
+        else:            
+            retry_btn = panel.LabelPanel(
+                "retry", text=" Try Again ",
+                geom=dict(pos=(412,100,0)),
+                style_classes=['button'])
+            quit_btn = panel.LabelPanel(
+                "ok", text=" Give Up ",
+                geom=dict(pos=(712,100,0)),
+                style_classes=['button'])
+            ov.append(retry_btn)
+            ov.append(quit_btn)
         if self.died_of:
             text = ("CORONER'S REPORT\n"
                     "----------------\n"
@@ -555,6 +574,8 @@ class ScoreScreen(Screen):
         name = label.target._name
         if name == "ok":
             self.exit_to(TitleScreen)
+        elif name == "retry":
+            self.exit_to(GameScreen,levelnum=self.levelnum)
 
 # Initialisation
 Screen.set_next(TitleScreen)
