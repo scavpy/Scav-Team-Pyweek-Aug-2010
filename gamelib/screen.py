@@ -41,16 +41,19 @@ class Screen(part.Group):
             "bg":(0,0,0,0.5)},
         }
     music = None
+    last_music = None
 
     def __init__(self,name="",**kw):
         super(Screen,self).__init__(name,(),**kw)
         self.build_parts(**kw)
         stylesheet.load(self._screen_styles)
         self.restyle(True)
-        if self.music:
-            sounds.music_start(self.music)
-        else:
-            sounds.music_fade(1000)
+        if self.music != Screen.last_music:
+            if self.music:
+                sounds.music_start(self.music)
+            else:
+                sounds.music_fade(1000)
+            Screen.last_music = self.music
 
     @staticmethod
     def screen_order():
@@ -344,7 +347,6 @@ class GameScreen(Screen):
                 # See if player has escaped
                 phex = collision.nearest_neighbours(newpos.x,newpos.y,0).next()
                 if phex == self.player_exit:
-                    sounds.music_fade(1000)
                     sounds.play("fanfare")
                     level = self.find_level(self.levelnum+1)
                     if level:
