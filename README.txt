@@ -29,8 +29,8 @@ Othewise open a terminal / console and "cd" to the game directory and run:
 HOW TO PLAY THE GAME:
 
 Move around with the keys (W,S = up,down; A,D = left,right). Left-click
-to launch a ball.  Stay out of the way while the ball is angry! You can
-deflect it safely when it calms down.
+to launch a demolition ball.  Stay out of the way of the ball and the
+monsters.
 
 Look for power-ups and of course, the way out.
 

@@ -133,6 +133,15 @@ class HexagonField(part.Part):
             self.prepare()
             return 10
 
+class StoryPanel(panel.LabelPanel):
+    _default_geom = {"pos":(512,400,0),
+                     "text_width":800 }
+    def __init__(self,name,text,**kw):
+        init = super(StoryPanel,self).__init__
+        init(name,text=text,
+             style_classes=["storytext"],**kw)
+
+
 class ClockPart(part.Part):
     clock = pyglet.clock.ClockDisplay()
     def __init__(self,name="clock",**kw):

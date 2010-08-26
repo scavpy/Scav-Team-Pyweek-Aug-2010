@@ -21,12 +21,17 @@ import collision
 import levelfile
 import monsters
 import main # for options
-from graphics import ClockPart, Ball, Player, ScreenFrame
+from graphics import ClockPart, Ball, Player, ScreenFrame, StoryPanel
 
 MUSIC = {
     "title":"data/sound/subterranean.ogg",
     "gameplay":None,
     }
+
+SOUNDS = {
+    "crack":"data/sound/crack.ogg",
+    "ow":"data/sound/ow.ogg",
+}
 
 class Screen(part.Group):
     _next = None
@@ -39,7 +44,12 @@ class Screen(part.Group):
             "bd_margin":18,"bd_radius":42, "bd_round:":0,
             },
         "LabelPanel": { "font":"ExperiMental" },
-        "LabelPanel.storytext": {"font_size":30},
+        "StoryPanel.storytext": {
+            "font_size":30, "font":"ExperiMental",
+            "fg":(1,1,1,1),
+            "bg_margin":30,
+            "border":None,
+            "bg":(0,0,0,0.5)},
         }
 
     def __init__(self,name="",**kw):
@@ -47,7 +57,7 @@ class Screen(part.Group):
         self.build_parts(**kw)
         stylesheet.load(self._screen_styles)
         self.restyle(True)
-        self.music = None
+        self.set_music()
 
     @staticmethod
     def screen_order():
@@ -97,6 +107,10 @@ class Screen(part.Group):
     def cleanup(self):
         pass
 
+    def set_music(self):
+        mixer.music.fadeout(1000)
+
+
 
 class GameScreen(Screen):
     _screen_styles = {
@@ -122,7 +136,8 @@ class GameScreen(Screen):
         self.light = lighting.claim_light()
         stylesheet.load(monsters.MonsterStyles)
         super(GameScreen,self).__init__(name,**kw)
-        self.set_mode("playing")
+        self.set_mode("story" if self.story_page is not None
+                      else "playing")
         Sin60 = collision.Sin60
         self.movekeys = {
             # Gamer keys
@@ -145,6 +160,7 @@ class GameScreen(Screen):
         glGetIntegerv(GL_VIEWPORT, vport)
         self.vport = tuple(vport)
         self.reload = 0
+        self.sounds = dict((k,mixer.Sound(v)) for k,v in SOUNDS.items())
 
             
     def __del__(self):
@@ -158,10 +174,11 @@ class GameScreen(Screen):
         return levelfile.load_level(fname)
 
     def build_parts(self,**kw):
+        level = self.level
         ov = ScreenFrame()
         ov.add_label(
             "level_indicator",
-            "{0} ({1})".format(self.level.name,self.levelnum))
+            "{0} ({1})".format(level.name,self.levelnum))
         ov.add_label("score",
                      "{0:05}".format(self.score),
                      top=False,left=False)
@@ -170,10 +187,15 @@ class GameScreen(Screen):
             glDisable(GL_LIGHTING)
         if main.options.time:
             ov.append(ClockPart(geom=dict(pos=(50,50,0))))
+        if level.story:
+            ov.append(StoryPanel("story",level.story[0]))
+            self.story_page = 0
+        else:
+            self.story_page = None
         self.append(ov)
         hf = graphics.HexagonField("hexfield",self.level)
-        pu,pv = self.level.start
-        self.player_exit = self.level.exit
+        pu,pv = level.start
+        self.player_exit = level.exit
         x,y = graphics.hex_to_world_coords(pu,pv)
         player = Player(name="player",
             geom=dict(pos=(x,y,0),radius=0.49))
@@ -187,6 +209,7 @@ class GameScreen(Screen):
         sv.camera.look_from_spherical(87,-90,300)
         sv.camera.look_from_spherical(80,-90,100,1000)
         self.camera = sv.camera
+        self.camera.step(1)
         with sv.compile_style():
             glEnable(GL_LIGHTING)
         lighting.light_position(self.light,(10,10,10,0))
@@ -212,6 +235,16 @@ class GameScreen(Screen):
             ms.append(m)
         return ms
 
+    def dismiss_story_page(self):
+        s = self.story_page + 1
+        pn = self["story"]
+        if s < len(self.level.story):
+            pn.text = self.level.story[s]
+            pn.prepare()
+            self.story_page = s
+        else:
+            self["frame"].remove(pn)
+            self.set_mode("playing")
         
     def setup_style(self):
         lighting.setup()
@@ -233,7 +266,10 @@ class GameScreen(Screen):
              
     def click(self,x,y,button,mods):
         """ Click to fire """
-        if button != 1:
+        if button != 1 or self.mode == "dying":
+            return
+        if self.mode == "story":
+            self.dismiss_story_page()
             return
         if self.reload:
             return
@@ -244,9 +280,14 @@ class GameScreen(Screen):
             vx,vy,vw,vh = self.vport
             v = Vec(x - (vx + vw//2), y - (vy + vh//2)).normalise() * 0.01
         self.add_ball(v)
-        self.reload = 500
+        self.reload = 300
 
     def keydown(self,sym,mods):
+        if self.mode == "dying":
+            return
+        if self.mode == "story":
+            self.dismiss_story_page()
+            return
         self.keysdown.add(sym)
         if sym == pygletkey.F3:
             if self.first_person:
@@ -261,6 +302,7 @@ class GameScreen(Screen):
             a = radians(self.player.angle)
             v = Vec(cos(a),sin(a)) * 0.01 # per ms
             self.add_ball(v)
+            self.reload = 300
 
     def keyup(self,sym,mods):
         try:
@@ -318,6 +360,7 @@ class GameScreen(Screen):
 
     def step_balls(self,ms):
         player = self.player
+        dying = (self.mode == "dying")
         pr = player.getgeom('radius',0.49)
         ppos = player.pos
         for ball in self["balls"].contents:
@@ -331,19 +374,21 @@ class GameScreen(Screen):
                 if P:
                     newpos, bv_times_ms = P
                     ball.velocity = bv_times_ms * (1/ms)
-                    if ball.maxdestroy > 0:
+                    if ball.maxdestroy > 0 and not dying:
                         points = self.hexfield.destroy(hc,hr)
                         if points:
+                            self.sounds["crack"].play()
                             ball.maxdestroy -= 1
                             ball.duration -= 1000
                             self.inc_score(points)
                     break
             ball.pos = newpos
-            if (ball.pos - ppos).length() < (r + pr):
+            if not dying and (ball.pos - ppos).length() < (r + pr):
                 self.player_die("ball trauma")
 
     def step_monsters(self,ms):
         player = self.player
+        dying = (self.mode == "dying")
         pr = player.getgeom('radius',0.49)
         ppos = player.pos
         for mon in self["monsters"].contents:
@@ -361,7 +406,7 @@ class GameScreen(Screen):
                     mon.on_collision(None,newpos,velocity)
                     collided = True
                     break
-            if not collided:
+            if not collided and not dying:
                 for ball in self["balls"].contents:
                     br = ball.getgeom("radius")
                     if (ball.pos - newpos).length() < (r + br):
@@ -372,28 +417,47 @@ class GameScreen(Screen):
                 return
             if not collided:
                 mon.pos = newpos
-            if (mon.pos - ppos).length() < (r + pr):
+            if not dying and (mon.pos - ppos).length() < (r + pr):
                 self.player_die("{0} {1}".format(
                         mon.harm_type,
                         mon.__class__.__name__))
 
-    def player_die(self,died_of=""):
-        self.exit_to(ScoreScreen,score=self.score,died_of=died_of)
+    def player_die(self,dying_of=""):
+        self.sounds["ow"].play()
+        self.set_mode("dying")
+        self.dying_of = dying_of
+        self.dying_time = 3000
+        lighting.light_colour(self.light,(0,0,0,0),self.dying_time)
 
     def step(self,ms):
+        if ms == 0:
+            return
+        if self.mode == "story":
+            return
         if self.reload > 0:
             self.reload = max(0,self.reload - ms)
-        self.step_player(ms)
         self.step_monsters(ms)
         self.step_balls(ms)
         self.step_contents(ms)
+        if self.mode == "dying":
+            lighting.step(ms)
+            if self.dying_time <= 0:
+                self.exit_to(ScoreScreen,
+                             score=self.score,
+                             levelnum=self.levelnum,
+                             died_of=self.dying_of)
+            else:
+                self.dying_time -= ms
+        else:
+            self.step_player(ms)
 
 class TitleScreen(Screen):
 
-    def build_parts(self,**kw):
-        # Playing music in a common function between screens
+    def set_music(self):
         mixer.music.load(MUSIC.get("title"))
         mixer.music.play(-1)
+
+    def build_parts(self,**kw):
         start_btn = panel.LabelPanel(
             "Start", text=" Start ",
             geom=dict(pos=(512,200,0)),
@@ -430,11 +494,7 @@ or hexagon in your life..."""
 
     def build_parts(self,**kw):
         mixer.music.stop()
-        pn = panel.LabelPanel(
-            "the_end", text=self.victory_text,
-            geom=dict(pos=(512,400,0),
-                      text_width=800),
-            style_classes=['storytext'])
+        pn = StoryPanel("the_end", text=self.victory_text)
         ok_btn = panel.LabelPanel(
             "ok", text=" Finally! ",
             geom=dict(pos=(512,100,0)),
@@ -464,23 +524,37 @@ class ScoreScreen(Screen):
             "font":"Courier",
             "font_size":20 },
         }
-    def __init__(self,score,died_of="",**kw):
+    def __init__(self,score,died_of="",levelnum=None,**kw):
         self.score = score
         self.died_of = died_of
+        self.levelnum = levelnum
         super(ScoreScreen,self).__init__(**kw)
         
     def build_parts(self,**kw):
-        mixer.music.stop()
+        mixer.music.fadeout(1000)
         pn = panel.LabelPanel(
             "finalscore", text="Your Score: {0}".format(self.score),
             geom=dict(pos=(512,600,0)))
-        ok_btn = panel.LabelPanel(
-            "ok", text=" OK ",
-            geom=dict(pos=(512,100,0)),
-            style_classes=['button'])
         ov = OrthoView(
-            "ortho", [pn,ok_btn],
+            "ortho", [pn],
             geom=dict(left=0,right=1024,top=768,bottom=0))
+        if self.levelnum is None:
+            quit_btn = panel.LabelPanel(
+                "ok", text=" OK ",
+                geom=dict(pos=(512,100,0)),
+                style_classes=['button'])
+            ov.append(quit_btn)
+        else:            
+            retry_btn = panel.LabelPanel(
+                "retry", text=" Try Again ",
+                geom=dict(pos=(412,100,0)),
+                style_classes=['button'])
+            quit_btn = panel.LabelPanel(
+                "ok", text=" Give Up ",
+                geom=dict(pos=(712,100,0)),
+                style_classes=['button'])
+            ov.append(retry_btn)
+            ov.append(quit_btn)
         if self.died_of:
             text = ("CORONER'S REPORT\n"
                     "----------------\n"
@@ -500,6 +574,8 @@ class ScoreScreen(Screen):
         name = label.target._name
         if name == "ok":
             self.exit_to(TitleScreen)
+        elif name == "retry":
+            self.exit_to(GameScreen,levelnum=self.levelnum)
 
 # Initialisation
 Screen.set_next(TitleScreen)
