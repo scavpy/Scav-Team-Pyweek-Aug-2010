@@ -7,10 +7,11 @@
 """
 from math import atan2, degrees, fmod, sin, cos, radians
 import random
-from tdgl import objpart
+from tdgl import objpart, animator
 from tdgl.gl import *
 from tdgl.vec import Vec
 import graphics
+import sounds
 
 
 class Monster(objpart.ObjPart):
@@ -69,11 +70,13 @@ class Shuttler(Monster):
 
 class Squashy(Monster):
     _default_geom = {"radius":0.7}
+    speed = 0.6
     harm_type = "contaminated by a"
     """ On collision with a ball, die"""
     def on_collision(self,what,where,direction):
         if isinstance(what,graphics.Ball):
             self._expired = True
+            sounds.play("squelch")
         else:
             self.turn_to(direction)
             self.pos = where
@@ -83,6 +86,7 @@ class Wanderer(Monster):
     speed = 0.8
     """ On collision with a ball, pick a random
     direction and speed"""
+
     def on_collision(self,what,where,direction):
         if isinstance(what,graphics.Ball):
             r = self.velocity.length()
@@ -92,6 +96,7 @@ class Wanderer(Monster):
             self.angle = random.random() * 360
             a = radians(self.angle)
             self.velocity = Vec(cos(a),sin(a)) * r
+            sounds.play("chime")
         else:
             self.turn_to(direction)
         self.pos = where
@@ -106,8 +111,11 @@ class Hunter(Monster):
             self.pos = what.pos
             # Eat the ball!
             what._expired = True
+            sounds.play("roar")
         elif isinstance(what,graphics.Player):
+            self.turn_to(direction)
             self.velocity = Vec(0,0,0)
+            sounds.play("roar")
         else:
             self.turn_to(direction)
             self.pos = where
