@@ -120,7 +120,7 @@ class GameScreen(Screen):
         "#player":{"obj-filename":"thedetective.obj",
                    "obj-pieces":["Body","Hat","Feet0","Eyes"],
                    "mtl-override-pieces":["Body"],
-                   "override-mtl":"Gold"},
+                   "override-mtl":"Purple"},
         "Ball":{ "obj-filename":"prismball.obj" },
         }
 
