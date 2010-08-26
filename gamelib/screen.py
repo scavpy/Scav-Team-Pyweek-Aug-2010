@@ -9,8 +9,6 @@ import pyglet
 from pyglet.window import key as pygletkey
 from math import atan2,degrees,radians,sin,cos
 
-from pygame import mixer
-
 from tdgl.gl import *
 from tdgl import part, picking, panel, stylesheet, lighting, objpart
 from tdgl.viewpoint import OrthoView, SceneView
@@ -22,16 +20,7 @@ import levelfile
 import monsters
 import main # for options
 from graphics import ClockPart, Ball, Player, ScreenFrame, StoryPanel
-
-MUSIC = {
-    "title":"data/sound/subterranean.ogg",
-    "gameplay":None,
-    }
-
-SOUNDS = {
-    "crack":"data/sound/crack.ogg",
-    "ow":"data/sound/ow.ogg",
-}
+import sounds
 
 class Screen(part.Group):
     _next = None
@@ -51,13 +40,17 @@ class Screen(part.Group):
             "border":None,
             "bg":(0,0,0,0.5)},
         }
+    music = None
 
     def __init__(self,name="",**kw):
         super(Screen,self).__init__(name,(),**kw)
         self.build_parts(**kw)
         stylesheet.load(self._screen_styles)
         self.restyle(True)
-        self.set_music()
+        if self.music:
+            sounds.music_start(self.music)
+        else:
+            sounds.music_fade(1000)
 
     @staticmethod
     def screen_order():
@@ -106,10 +99,6 @@ class Screen(part.Group):
 
     def cleanup(self):
         pass
-
-    def set_music(self):
-        mixer.music.fadeout(1000)
-
 
 
 class GameScreen(Screen):
@@ -160,8 +149,7 @@ class GameScreen(Screen):
         glGetIntegerv(GL_VIEWPORT, vport)
         self.vport = tuple(vport)
         self.reload = 0
-        self.sounds = dict((k,mixer.Sound(v)) for k,v in SOUNDS.items())
-
+        sounds.play(self.level.sound)
             
     def __del__(self):
         lighting.release_light(self.light)
@@ -352,6 +340,8 @@ class GameScreen(Screen):
                 # See if player has escaped
                 phex = collision.nearest_neighbours(newpos.x,newpos.y,0).next()
                 if phex == self.player_exit:
+                    sounds.music_fade(1000)
+                    sounds.play("fanfare")
                     level = self.find_level(self.levelnum+1)
                     if level:
                         self.exit_to(GameScreen,score=self.score,level=level,levelnum=self.levelnum+1)
@@ -377,7 +367,7 @@ class GameScreen(Screen):
                     if ball.maxdestroy > 0 and not dying:
                         points = self.hexfield.destroy(hc,hr)
                         if points:
-                            self.sounds["crack"].play()
+                            sounds.play("crack")
                             ball.maxdestroy -= 1
                             ball.duration -= 1000
                             self.inc_score(points)
@@ -423,7 +413,7 @@ class GameScreen(Screen):
                         mon.__class__.__name__))
 
     def player_die(self,dying_of=""):
-        self.sounds["ow"].play()
+        sounds.play("pain")
         self.set_mode("dying")
         self.dying_of = dying_of
         self.dying_time = 3000
@@ -452,10 +442,7 @@ class GameScreen(Screen):
             self.step_player(ms)
 
 class TitleScreen(Screen):
-
-    def set_music(self):
-        mixer.music.load(MUSIC.get("title"))
-        mixer.music.play(-1)
+    music = "title"
 
     def build_parts(self,**kw):
         start_btn = panel.LabelPanel(
@@ -493,7 +480,6 @@ or hexagon in your life..."""
         super(VictoryScreen,self).__init__(**kw)
 
     def build_parts(self,**kw):
-        mixer.music.stop()
         pn = StoryPanel("the_end", text=self.victory_text)
         ok_btn = panel.LabelPanel(
             "ok", text=" Finally! ",
@@ -531,7 +517,6 @@ class ScoreScreen(Screen):
         super(ScoreScreen,self).__init__(**kw)
         
     def build_parts(self,**kw):
-        mixer.music.fadeout(1000)
         pn = panel.LabelPanel(
             "finalscore", text="Your Score: {0}".format(self.score),
             geom=dict(pos=(512,600,0)))
