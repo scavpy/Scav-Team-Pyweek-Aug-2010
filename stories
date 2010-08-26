@@ -66,6 +66,7 @@ User Stories
     (Threads) branch: music, status: done
 
 17. The game screen should play the in-game music.
+    (Threads) branch: music, status: done
 
 18. Destroying hexagons should increase the score, which will be shown
     on the bottom right of the screen.
@@ -85,10 +86,24 @@ User Stories
     f.  player dying
     Some of these may be the same. (e.g. enraging and being eaten by a
     hunter may be the same sound)
+    (scav) status: done
 
 21. The last level will have a special monster.
 
+22. There will be Mimics.  They look like a wall piece unless hit by a
+    ball. They they become like a Hunter for up to 10 bounces. Then they
+    go back into hiding.
 
+23. There will be a level where you need to be in first-person mode to spot
+    a section of wall that you can walk through.
 
+24. There will be a bowling-ball power-up that makes your balls slower
+    and much more destructive.
 
+25. There will be a spiked ball that will not bounce from hexagons that it
+    destroys.
 
+26. There will be a smiley ball that cannot harm the player.
+
+27. There will be a blitzball that will go very fast in a straight line and
+    deal 99,999 damage to the first hexagon it hits. Short lived ball.
