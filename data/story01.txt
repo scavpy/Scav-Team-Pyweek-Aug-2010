@@ -1,3 +1,4 @@
 You wake up in a weird honycomb cave, armed only with some powerful demolition balls.
 Dig your way to the exit.
 Watch out for rebounds.
+A,D = Left/Right; W,S = Up/Down; Mouse 1 to fire.
