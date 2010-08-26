@@ -42,7 +42,7 @@ class EditorWindow(pyglet.window.Window):
             self.level.name = options.name
         if options.story:
             with open(options.story,"ru") as f:
-                self.level.story = f.read.split("\n\n")
+                self.level.story = f.read().split("\n\n")
         self.cellcode = "#"
         self.rgb = [1,1,1]
         stylesheet.load(monsters.MonsterStyles)
@@ -154,7 +154,7 @@ class EditorWindow(pyglet.window.Window):
         view = self.parts["view"]
         m = view[mname]
         if m:
-            view.remove[m]
+            view.remove(m)
         
         
     def click_in_grid(self,x,y,button,mods):

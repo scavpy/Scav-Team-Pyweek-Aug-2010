@@ -67,6 +67,7 @@ class Shuttler(Monster):
         self.pos = where
 
 class Squashy(Monster):
+    _default_geom = {"radius":0.7}
     harm_type = "contaminated by a"
     """ On collision with a ball, die"""
     def on_collision(self,what,where,direction):
@@ -100,6 +101,8 @@ class Hunter(Monster):
             self.turn_to(what.velocity * -1)
             self.harm_type = "provoked a"
             self.pos = what.pos
+            # Eat the ball!
+            what._expired = True
         else:
             self.turn_to(direction)
             self.pos = where
@@ -111,8 +114,8 @@ MonsterStyles = {
     "Hunter": {"obj-filename":"crab.obj",
                "mtl-override-pieces":["Body"],
                "override-mtl":"Chocolate"},
-    "Squashy": {"obj-filename":"crab.obj",
-               "mtl-override-pieces":["Body"],
+    "Squashy": {"obj-filename":"squelchy.obj",
+               "mtl-override-pieces":[],
                "override-mtl":"White"},
     "Monster": {"obj-filename":"crab.obj",
                "mtl-override-pieces":["Body"],
