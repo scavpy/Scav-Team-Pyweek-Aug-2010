@@ -12,6 +12,7 @@ from tdgl.gl import *
 from tdgl.vec import Vec
 import graphics
 import sounds
+import collision
 
 
 class Monster(objpart.ObjPart):
@@ -120,6 +121,59 @@ class Hunter(Monster):
             self.turn_to(direction)
             self.pos = where
 
+class Mimic(Monster):
+    """ Hides until hit, then goes on a short rampage,
+    then goes back into hiding"""
+    def __init__(self,name,**kw):
+        self.mimic_obj=None
+        self.real_obj=None
+        self.real_pieces=()
+        self.hiding = True
+        self.rage = 0
+        super(Mimic,self).__init__(name,**kw)
+        self.velocity = Vec(0,0,0)
+
+    def prepare(self):
+        super(Mimic,self).prepare()
+        self.real_obj = self.obj
+        self.real_pieces = self.pieces
+        fname = self.getstyle("mimic-filename","wall.obj")
+        self.mimic_obj = objpart.get_obj(fname)
+        if self.hiding:
+            self.obj = self.mimic_obj
+            self.pieces = self.mimic_obj.pieces()
+
+    def enrage(self):
+        self.rage = 10
+        self.hiding = False
+        self.prepare()
+
+    def on_collision(self,what,where,direction):
+        if isinstance(what,graphics.Ball):
+            self.turn_to(what.velocity * -1.1)
+            self.harm_type = "provoked a"
+            self.pos = what.pos
+            # Eat the ball!
+            what._expired = True
+            sounds.play("roar")
+            self.enrage()
+        elif isinstance(what,graphics.Player):
+            self.turn_to(direction)
+            self.velocity = Vec(0,0,0)
+            sounds.play("roar")
+        else:
+            self.turn_to(direction)
+            self.pos = where
+            self.rage -= 1
+            if self.rage <= 0:
+                self.hiding = True
+                x,y,_ = where
+                hc,hr = collision.nearest_neighbours(x,y,0).next()
+                self.pos = collision.h_centre(hc,hr)
+                self.velocity = Vec(0,0,0)
+                self.prepare()
+
+
 MonsterStyles = {
     "Wanderer": {"obj-filename":"wanderer.obj",
                  "mtl-override-pieces":["Swirly1","Swirly2","Swirly3","Swirly4"],
@@ -132,6 +186,10 @@ MonsterStyles = {
     "Hunter": {"obj-filename":"hunter.obj",
                "mtl-override-pieces":["Eye"],
                "override-mtl":"Jade"},
+    "Mimic": {"obj-filename":"hunter.obj",
+               "mtl-override-pieces":["Eye"],
+               "override-mtl":"Blood",
+               "mimic-filename":"wall.obj"},
     "Squashy": {"obj-filename":"squelchy.obj",
                "mtl-override-pieces":[],
                "override-mtl":"White"},
