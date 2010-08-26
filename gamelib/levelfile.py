@@ -64,7 +64,7 @@ class Level:
     def obstacles_near(self,x,y):
         return [(hc,hr,self.hexes[hc,hr])
                 for hc,hr in collision.nearest_neighbours(x,y,2)
-                if self.hexes.get((hc,hr)," ") not in " SX"]
+                if self.hexes.get((hc,hr)," ") not in " SXO"]
 
     def destroy(self,hc,hr):
         """Destroy the hexagon at hc,hr.
