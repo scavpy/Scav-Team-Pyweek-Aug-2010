@@ -14,6 +14,7 @@ except ImportError:
 
 music_files = {
     "title":"subterranean.ogg",
+    "gameplay":"honeycomb.ogg"
     }
 
 sound_files = {
