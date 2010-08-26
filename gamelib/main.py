@@ -14,9 +14,10 @@ from pygame import mixer
 options = None
 
 import monkey_patches
+import sounds
 
 def main():
-    mixer.init()
+    sounds.init()
     
     op = OptionParser("usage: %prog [options]")
     add = op.add_option
