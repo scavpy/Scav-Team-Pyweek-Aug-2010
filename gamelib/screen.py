@@ -279,10 +279,10 @@ class GameScreen(Screen):
         self.keysdown.add(sym)
         if sym == pygletkey.F3:
             if self.first_person:
-                self.camera.look_from_spherical(80,-90,100,200)
+                self.camera.look_from_spherical(80,270,100,200)
                 self.first_person = False
             else:
-                self.camera.look_from_spherical(30,self.player.angle + 180,30,200)
+                self.camera.look_from_spherical(15,self.player.angle + 180,50,200)
                 self.first_person = True
         elif sym == pygletkey.ESCAPE:
             self.player_die("boredom")
@@ -396,7 +396,7 @@ class GameScreen(Screen):
                     mon.on_collision(None,newpos,velocity)
                     collided = True
                     break
-            if not collided and not dying:
+            if not dying:
                 for ball in self["balls"].contents:
                     br = ball.getgeom("radius")
                     if (ball.pos - newpos).length() < (r + br):
