@@ -159,18 +159,43 @@ class Player(objpart.ObjPart):
 
 class Ball(objpart.ObjPart):
     _default_geom = {'radius':0.2}
+    lethal = True
+    speed = 0.01
+    duration = 6000
+    maxdestroy = 3
+    bounces = True
 
-    def __init__(self,velocity=(0,0),duration=6000,maxdestroy=3,**kw):
+    def __init__(self,direction,**kw):
         super(Ball,self).__init__('',**kw)
-        self.velocity = Vec(velocity)
-        self.duration = duration
-        self.maxdestroy = maxdestroy
+        self.velocity = Vec(direction).normalise() * self.speed
 
     def step(self,ms):
-        self.duration -= ms
+        self.duration = self.duration - ms
         if self.duration < 0:
             self._expired = True
 
+class BlitzBall(Ball):
+    _default_geom = {'radius':0.2}
+    duration = 1000
+    speed = 0.02
+    
+class BowlingBall(Ball):
+    _default_geom = {'radius':0.4}
+    speed = 0.005
+    duration = 10000
+    maxdestroy = 8
+
+class HappyBall(Ball):
+    _default_geom = {'radius':0.2}
+    lethal = False
+    maxdestroy = float('inf')
+    duration = float('inf')
+
+class SpikeBall(Ball):
+    _default_geom = {'radius':0.2}
+    maxdestroy = 6
+    bounces = False
+    duration = 8000
 
 class ScreenFrame(viewpoint.OrthoView):
     def __init__(self,name="frame",contents=(),**kw):

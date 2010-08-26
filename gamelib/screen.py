@@ -20,6 +20,7 @@ import levelfile
 import monsters
 import main # for options
 from graphics import ClockPart, Ball, Player, ScreenFrame, StoryPanel
+from graphics import BlitzBall, BowlingBall, SpikeBall, HappyBall
 import sounds
 
 class Screen(part.Group):
@@ -122,6 +123,10 @@ class GameScreen(Screen):
                    "mtl-override-pieces":["Body"],
                    "override-mtl":"Gold"},
         "Ball":{ "obj-filename":"prismball.obj" },
+        "BlitzBall":{ "obj-filename":"blitzball.obj" },
+        "BowlingBall":{ "obj-filename":"bowlingball.obj" },
+        "SpikeBall":{ "obj-filename":"spikeball.obj" },
+        "HappyBall":{ "obj-filename":"faceball.obj" },
         }
 
     def __init__(self,name="",level=None,levelnum=1,score=0,**kw):
@@ -157,6 +162,8 @@ class GameScreen(Screen):
         glGetIntegerv(GL_VIEWPORT, vport)
         self.vport = tuple(vport)
         self.reload = 0
+        self.special_ammo = 10
+        self.special_ball = SpikeBall
         sounds.play(self.level.sound)
             
     def __del__(self):
@@ -249,33 +256,38 @@ class GameScreen(Screen):
         self.score += points
         self["frame"].update_label("score","{0:05}",self.score)
 
-    def add_ball(self,velocity,maxdestroy=4):
-        r = 0.2
-        ball = Ball(velocity=velocity,
-                    maxdestroy=maxdestroy,
-                    geom=dict(radius=r))
+    def add_ball(self,direction,Kind=Ball):
+        ball = Kind(direction=direction)
+        r = ball.getgeom("radius")
         player = self.player
         pr = player.getgeom('radius',0.49)
-        ball.pos = velocity.normalise() * (r + pr + 0.1) + player.pos
+        ball.pos = ball.velocity.normalise() * (r + pr + 0.1) + player.pos
         ball.restyle(True)
         self["balls"].append(ball)
              
     def click(self,x,y,button,mods):
         """ Click to fire """
-        if button != 1 or self.mode == "dying":
+        if button not in (1,4):
+            return
+        if self.mode == "dying":
             return
         if self.mode == "story":
             self.dismiss_story_page()
             return
         if self.reload:
             return
+        if button == 4:
+            if self.special_ammo <= 0:
+                return
+            self.special_ammo -= 1
         if self.first_person:
             a = radians(self.player.angle)
-            v = Vec(cos(a),sin(a)) * 0.01 # per ms
+            v = Vec(cos(a),sin(a))
         else:
             vx,vy,vw,vh = self.vport
-            v = Vec(x - (vx + vw//2), y - (vy + vh//2)).normalise() * 0.01
-        self.add_ball(v)
+            v = Vec(x - (vx + vw//2), y - (vy + vh//2))
+        kind = (self.special_ball if button == 4 else Ball)
+        self.add_ball(direction=v,Kind=kind)
         self.reload = 300
 
     def keydown(self,sym,mods):
@@ -370,7 +382,7 @@ class GameScreen(Screen):
                 P = collision.collides(hc,hr,pos,r,v,collision.COLLIDE_REBOUND)
                 if P:
                     newpos, bv_times_ms = P
-                    ball.velocity = bv_times_ms * (1/ms)
+                    vel = bv_times_ms * (1/ms)
                     if ball.maxdestroy > 0 and not dying:
                         points = self.hexfield.destroy(hc,hr)
                         if points:
@@ -378,9 +390,14 @@ class GameScreen(Screen):
                             ball.maxdestroy -= 1
                             ball.duration -= 1000
                             self.inc_score(points)
+                            if not ball.bounces:
+                                vel = ball.velocity
+                    ball.velocity = vel
                     break
             ball.pos = newpos
-            if not dying and (ball.pos - ppos).length() < (r + pr):
+            if (ball.lethal
+                and not dying 
+                and (ball.pos - ppos).length() < (r + pr)):
                 self.player_die("ball trauma")
 
     def step_monsters(self,ms):
