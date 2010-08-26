@@ -103,6 +103,8 @@ class Hunter(Monster):
             self.pos = what.pos
             # Eat the ball!
             what._expired = True
+        elif isinstance(what,graphics.Player):
+            self.velocity = Vec(0,0,0)
         else:
             self.turn_to(direction)
             self.pos = where
@@ -112,8 +114,8 @@ MonsterStyles = {
                  "mtl-override-pieces":["Body"],
                  "override-mtl":"Blood"},
     "Hunter": {"obj-filename":"hunter.obj",
-               "mtl-override-pieces":[],
-               "override-mtl":"Gold"},
+               "mtl-override-pieces":["Eye"],
+               "override-mtl":"Jade"},
     "Squashy": {"obj-filename":"squelchy.obj",
                "mtl-override-pieces":[],
                "override-mtl":"White"},
