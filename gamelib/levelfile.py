@@ -29,7 +29,7 @@ import copy
 import collision
 
 class Level:
-    def __init__(self,leveldict):
+    def __init__(self,leveldict=None):
         self.name = "a level"
         self.story = []
         self.hexes = {}
@@ -37,7 +37,8 @@ class Level:
         self.exit = (8,8)
         self.sound = None
         self.monsters = {}
-        self.__dict__.update(copy.deepcopy(leveldict))
+        if leveldict:
+            self.__dict__.update(copy.deepcopy(leveldict))
         # sanity check
         for coords in list(self.monsters):
             if coords in self.hexes:
