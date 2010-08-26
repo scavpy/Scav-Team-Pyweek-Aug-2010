@@ -1,5 +1,6 @@
 # Blender3D v249 OBJ File: .thedetective.blend
 # www.blender3d.org
+mtllib thedetective.mtl
 o Feet2
 v 0.416912 0.195808 0.197068
 v 0.488817 0.294000 0.226769
