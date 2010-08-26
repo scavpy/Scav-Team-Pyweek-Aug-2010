@@ -3,6 +3,7 @@
 
 """
 import os
+import monkey_patches
 from inspect import isclass
 import pyglet
 import pyglet.resource
