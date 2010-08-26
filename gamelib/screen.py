@@ -215,7 +215,7 @@ class GameScreen(Screen):
                 vel = Vec(0,0)
             else: # random direction and speed
                 vel = (random.choice(collision.H_NORMAL) *
-                       random.gauss(1.0,0.02) * 0.01)
+                       random.gauss(M.speed,0.02) * 0.01)
             m = M("{0}{1}".format(classname,count),
                   velocity=vel,
                   geom=dict(pos=pos,angle=0))
