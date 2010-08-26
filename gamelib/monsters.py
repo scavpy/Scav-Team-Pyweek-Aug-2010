@@ -21,6 +21,7 @@ class Monster(objpart.ObjPart):
     _default_style = {"rate":100}
     _default_geom = {"radius":0.49}
     harm_type = "monsterated by a"
+    speed = 1.0
 
     def __init__(self,name='',frame=0,velocity=(0,0,0),level=None,**kw):
         super(Monster,self).__init__(name,**kw)
@@ -44,10 +45,10 @@ class Monster(objpart.ObjPart):
         self.count -= ms
         if self.count < 0:
             self.count = self.getstyle("rate")
-        if self.framelist:
-            f,pieces = self.framelist.pop(0)
-            self.framelist.append((f,pieces))
-            self.pieces = pieces
+            if self.framelist:
+                f,pieces = self.framelist.pop(0)
+                self.framelist.append((f,pieces))
+                self.pieces = pieces
 
     def turn_to(self,v):
         self.angle = degrees(atan2(v.y,v.x))
@@ -78,6 +79,8 @@ class Squashy(Monster):
             self.pos = where
 
 class Wanderer(Monster):
+    _default_geom = {"radius":0.3}
+    speed = 0.8
     """ On collision with a ball, pick a random
     direction and speed"""
     def on_collision(self,what,where,direction):
@@ -110,9 +113,14 @@ class Hunter(Monster):
             self.pos = where
 
 MonsterStyles = {
-    "Wanderer": {"obj-filename":"crab.obj",
-                 "mtl-override-pieces":["Body"],
-                 "override-mtl":"Blood"},
+    "Wanderer": {"obj-filename":"wanderer.obj",
+                 "mtl-override-pieces":["Swirly1","Swirly2","Swirly3","Swirly4"],
+                 "override-mtl":"Chocolate",
+                 "frames":{"1":["Spiky1","Swirly1"],
+                           "2":["Spiky2","Swirly2"],
+                           "3":["Spiky3","Swirly3"],
+                           "4":["Spiky4","Swirly4"]},
+                 "rate":100},
     "Hunter": {"obj-filename":"hunter.obj",
                "mtl-override-pieces":["Eye"],
                "override-mtl":"Jade"},
