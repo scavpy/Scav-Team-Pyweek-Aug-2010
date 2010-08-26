@@ -83,7 +83,10 @@ class Screen(part.Group):
         """Pick topmost object at x,y"""
         picking.start(x,y,1,1)
         self.draw('PICK')
-        objects = picking.end()
+        try:
+            objects = picking.end()
+        except AttributeError:
+            objects = None
         if objects:
             minz,maxz,label = objects[0]
             self.pick(label)
@@ -445,7 +448,12 @@ class GameScreen(Screen):
 class TitleScreen(Screen):
     music = "title"
 
+    def __del__(self):
+        lighting.release_light(self.light)
+
     def build_parts(self,**kw):
+        self.light = lighting.claim_light()
+        stylesheet.load(monsters.MonsterStyles)
         start_btn = panel.LabelPanel(
             "Start", text=" Start ",
             geom=dict(pos=(512,200,0)),
@@ -456,13 +464,50 @@ class TitleScreen(Screen):
             style_classes=['button'])
         ov = OrthoView(
             "ortho", [start_btn, quit_btn],
-            geom=dict(left=0,right=1024,top=768,bottom=0))
+            geom=dict(left=0,right=1024,top=768,bottom=0),
+            style={"ClearColor":(0,0,0,0)})
         if main.options.time:
             ov.append(ClockPart(geom=dict(pos=(50,50,0))))
         with ov.compile_style():
-            glClearColor(0.2,0,0,0)
             glDisable(GL_LIGHTING)
         self.append(ov)
+        sv = SceneView("scene")
+        self.level = level = levelfile.load_level("title.lev")
+        hf = graphics.HexagonField("hexfield",level)
+        sv.append(hf)
+        for coords, classname in level.monsters.items():
+            pos = collision.h_centre(*coords)
+            M = getattr(monsters,classname,monsters.Monster)
+            m = M(classname, geom=dict(pos=pos,angle=0))
+            sv.append(m)
+        sv.camera.look_at(pos,10)
+        sv.camera.look_from_spherical(45,270,70)
+        sv.camera.step(1)
+        self.camera = sv.camera
+        with sv.compile_style():
+            glEnable(GL_LIGHTING)
+        lighting.light_position(self.light,(10,10,10,0))
+        lighting.light_colour(self.light,(1,1,1,1))
+        lighting.light_switch(self.light,True)
+        self.append(sv)
+
+    def setup_style(self):
+        lighting.setup()
+
+    def step(self,ms):
+        self.step_contents(ms)
+        lighting.step(ms)
+        self.camera.step(ms)
+        if self.camera.animator.finished():
+            hexlist = [self.level.start, self.level.exit]
+            hexlist.extend(self.level.monsters.keys())
+            poslist = [tuple(collision.h_centre(*coords))
+                       for coords in hexlist]
+            poslist.append(poslist[0])
+            steplist = [10000 for coords in hexlist]
+            steplist.append(1000)
+            self.camera.animator.sequence("looking_at",poslist,steplist)
+
 
     def pick(self,label):
         name = label.target._name
