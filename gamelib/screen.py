@@ -408,6 +408,7 @@ class GameScreen(Screen):
             if not collided:
                 mon.pos = newpos
             if not dying and (mon.pos - ppos).length() < (r + pr):
+                mon.on_collision(player,newpos,(ppos - mon.pos)*0.01)
                 self.player_die("{0} {1}".format(
                         mon.harm_type,
                         mon.__class__.__name__))

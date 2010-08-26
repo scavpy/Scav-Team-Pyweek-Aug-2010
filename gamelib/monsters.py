@@ -70,6 +70,7 @@ class Shuttler(Monster):
 
 class Squashy(Monster):
     _default_geom = {"radius":0.7}
+    speed = 0.6
     harm_type = "contaminated by a"
     """ On collision with a ball, die"""
     def on_collision(self,what,where,direction):
@@ -112,6 +113,7 @@ class Hunter(Monster):
             what._expired = True
             sounds.play("roar")
         elif isinstance(what,graphics.Player):
+            self.turn_to(direction)
             self.velocity = Vec(0,0,0)
             sounds.play("roar")
         else:
