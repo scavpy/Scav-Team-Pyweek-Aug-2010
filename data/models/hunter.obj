@@ -1,5 +1,6 @@
 # Blender3D v249 OBJ File: hunter.blend
 # www.blender3d.org
+mtllib hunter.mtl
 o Eye
 v 0.066296 -0.000000 0.319517
 v 0.039012 0.064648 0.323604

@@ -1,5 +1,6 @@
 # Blender3D v249 OBJ File: .prismball.blend
 # www.blender3d.org
+mtllib prismball.mtl
 o Ball
 v 0.000000 0.000000 0.000000
 v 0.180900 -0.131430 0.138196

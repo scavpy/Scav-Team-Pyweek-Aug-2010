@@ -1,5 +1,6 @@
 # Blender3D v249 OBJ File: .faceball.blend
 # www.blender3d.org
+mtllib faceball.mtl
 o Ball
 v 0.095671 0.000000 0.480970
 v 0.176777 0.000000 0.426777
