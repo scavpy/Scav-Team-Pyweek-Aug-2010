@@ -140,6 +140,8 @@ class StoryPanel(panel.LabelPanel):
         init = super(StoryPanel,self).__init__
         init(name,text=text,
              style_classes=["storytext"],**kw)
+    def content_size(self):
+        return 800, self.label.content_height
 
 
 class ClockPart(part.Part):
