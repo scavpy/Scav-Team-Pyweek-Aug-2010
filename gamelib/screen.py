@@ -105,6 +105,7 @@ class Screen(part.Group):
 
 
 class GameScreen(Screen):
+    music = "gameplay"
     _screen_styles = {
         "LabelPanel.onframe": {
             "bg":(0.6,0.5,0.1,1), "fg":(1,1,1,1),
