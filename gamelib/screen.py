@@ -113,7 +113,8 @@ class GameScreen(Screen):
             "bg_margin":10,"bg_radius":20, "bg_round:":0,
             "bd_margin":10,"bd_radius":20, "bd_round:":0,
             },
-        "#player":{ "obj-filename":"crab.obj",
+        "#player":{"obj-filename":"thedetective.obj",
+                   "obj-pieces":["Body","Hat","Feet0","Eyes"],
                    "mtl-override-pieces":["Body"],
                    "override-mtl":"Gold"},
         "Ball":{ "obj-filename":"prismball.obj" },
@@ -307,9 +308,9 @@ class GameScreen(Screen):
             if self.first_person:
                 a = self.player.angle
                 if pygletkey.A in self.keysdown:
-                    a += 10
+                    a += 3
                 if pygletkey.D in self.keysdown:
-                    a -= 10
+                    a -= 3
                 theta = radians(a)
                 if pygletkey.W in self.keysdown:
                     v = Vec(cos(theta),sin(theta)) * ms * 0.01
