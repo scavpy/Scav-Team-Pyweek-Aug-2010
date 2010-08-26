@@ -24,13 +24,14 @@ TILE_OBJECTS = {
     "v":objpart.get_obj("swall.obj"),
     ">":objpart.get_obj("ewall.obj"),
     "<":objpart.get_obj("wwall.obj"),
+    "O":objpart.get_obj("trickwall.obj"),
 }
 
 def cellcolour(cellcode):
     c = cellcode[:1]
     if c == " ":
         return (0,0.5,0.5,0.5)
-    elif c in "#<>^v":
+    elif c in "#<>^vO":
         return (0.5,0.5,0.5,1)
     elif c == "H":
         rgba = [int(x,16) / 15.0 for x in cellcode[1:4]] + [1]
@@ -70,7 +71,7 @@ class HexagonField(part.Part):
         # first display list is a blank cell
         self.celltypes = {' ':CellType(0,True)}
         for i,ct in enumerate(sorted(level.celltypes)):
-            self.celltypes[ct] = CellType(i+1,ct in " SX")
+            self.celltypes[ct] = CellType(i+1,ct in " SXO")
         numtypes = len(level.celltypes)
         for coords,cellcode in level.hexes.items():
             ct = self.celltypes[cellcode]
@@ -90,7 +91,7 @@ class HexagonField(part.Part):
                 elif k[0] == "H":  # hexagon tile
                     glColor4f(*cellcolour(k))
                     glCallList(TILE_OBJECTS["H"].mesh_dls["hex"])
-                elif k[0] in "#^v<>": #wall
+                elif k[0] in "#^v<>O": #wall
                     glColor4f(*cellcolour(k))
                     glCallList(TILE_OBJECTS[k[0]].mesh_dls["hex"])
                 elif k[0] == "X":  # exit
