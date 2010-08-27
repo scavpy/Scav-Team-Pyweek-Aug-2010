@@ -23,6 +23,7 @@ sound_files = {
     "roar":"roar.ogg",
     "pain":"ow.ogg",
     "chime":"chime.ogg",
+    "chamber":"chamber.ogg",
 }
 
 sounds = {}

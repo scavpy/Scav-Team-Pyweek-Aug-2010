@@ -62,7 +62,7 @@ class Level:
         d = dict(name=self.name, story=self.story,
                  start=self.start, exit=self.exit,
                  hexes=self.hexes, monsters=self.monsters,
-                 sound=self.sound)
+                 sound=self.sound, powerups=self.powerups)
         with open(os.path.join("data",fname),"wb") as f:
             pickle.dump(d,f,-1)
 

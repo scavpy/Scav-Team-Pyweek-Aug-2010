@@ -189,6 +189,7 @@ class Ball(objpart.ObjPart):
     duration = 6000
     maxdestroy = 3
     bounces = True
+    ammo = 1
 
     def __init__(self,name='',direction=None,**kw):
         super(Ball,self).__init__(name,**kw)
@@ -206,24 +207,28 @@ class BlitzBall(Ball):
     _default_geom = {'radius':0.2}
     duration = 1000
     speed = 0.02
+    ammo = 5
     
 class BowlingBall(Ball):
     _default_geom = {'radius':0.4}
     speed = 0.005
     duration = 10000
     maxdestroy = 8
+    ammo = 3
 
 class HappyBall(Ball):
     _default_geom = {'radius':0.2}
     lethal = False
     maxdestroy = float('inf')
     duration = float('inf')
+    ammo = 1
 
 class SpikeBall(Ball):
     _default_geom = {'radius':0.2}
     maxdestroy = 6
     bounces = False
     duration = 8000
+    ammo = 4
 
 class ScreenFrame(viewpoint.OrthoView):
     def __init__(self,name="frame",contents=(),**kw):

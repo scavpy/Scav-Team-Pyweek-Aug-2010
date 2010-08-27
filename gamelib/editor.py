@@ -168,6 +168,7 @@ class EditorWindow(pyglet.window.Window):
         m = M(mname)
         m.pos = collision.h_centre(*coords)
         m.restyle(True)
+        m.duration = float('inf') # for balls
         self.parts["view"].append(m)
 
     def place_monster(self,coords,monstername):

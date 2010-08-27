@@ -200,7 +200,9 @@ class GameScreen(Screen):
         balls = part.Group("balls",[])
         monsters = part.Group("monsters",
                               self.build_monsters(self.level))
-        sv = SceneView("scene",[hf,player,balls,monsters])
+        powerups = part.Group("powerups",
+                              self.build_powerups(self.level))
+        sv = SceneView("scene",[monsters,hf,player,balls,powerups])
         sv.camera.look_at((x,y,0),10)
         sv.camera.look_from_spherical(87,-90,300)
         sv.camera.look_from_spherical(80,-90,100,1000)
@@ -230,6 +232,17 @@ class GameScreen(Screen):
             count += 1
             ms.append(m)
         return ms
+
+    def build_powerups(self,level):
+        ps = []
+        for coords, classname in level.powerups.items():
+            pos = collision.h_centre(*coords)
+            P = getattr(graphics,classname,graphics.Ball)
+            p = P(repr(coords), geom=dict(pos=pos,angle=0))
+            p.duration = float('inf')
+            ps.append(p)
+        return ps
+
 
     def dismiss_story_page(self):
         s = self.story_page + 1
@@ -359,6 +372,16 @@ class GameScreen(Screen):
                         self.exit_to(GameScreen,score=self.score,level=level,levelnum=self.levelnum+1)
                     else:
                         self.exit_to(VictoryScreen,score=self.score)
+                elif phex in self.level.powerups:
+                    bname = self.hexfield.collect(*phex)
+                    if bname:
+                        B = getattr(graphics,bname)
+                        self.special_ammo = B.ammo
+                        self.special_ball = B
+                        sounds.play("chamber")
+                        b = self[repr(phex)]
+                        if b:
+                            self["powerups"].remove(b)
 
     def step_balls(self,ms):
         player = self.player
@@ -440,6 +463,7 @@ class GameScreen(Screen):
     def step(self,ms):
         if ms == 0:
             return
+        lighting.step(ms)
         if self.mode == "story":
             return
         if self.reload > 0:
@@ -448,7 +472,6 @@ class GameScreen(Screen):
         self.step_balls(ms)
         self.step_contents(ms)
         if self.mode == "dying":
-            lighting.step(ms)
             if self.dying_time <= 0:
                 self.exit_to(ScoreScreen,
                              score=self.score,
@@ -499,6 +522,7 @@ class TitleScreen(Screen):
             pos = collision.h_centre(*coords)
             M = getattr(graphics,classname,graphics.Ball)
             m = M(classname, geom=dict(pos=pos,angle=0))
+            m.duration = float('inf')
             sv.append(m)
         sv.camera.look_at(pos,10)
         sv.camera.look_from_spherical(45,270,70)
