@@ -121,7 +121,8 @@ class GameScreen(Screen):
                    "override-mtl":"Purple"},
         }
 
-    def __init__(self,name="",level=None,levelnum=1,score=0,**kw):
+    def __init__(self,name="",level=None,levelnum=1,score=0,
+                 ammo=0,special=None, **kw):
         if not level:
             level = self.find_level(levelnum)
         self.level = level
@@ -155,8 +156,8 @@ class GameScreen(Screen):
         glGetIntegerv(GL_VIEWPORT, vport)
         self.vport = tuple(vport)
         self.reload = 0
-        self.special_ammo = 10
-        self.special_ball = None
+        self.special_ammo = ammo
+        self.special_ball = special
         sounds.play(self.level.sound)
             
     def __del__(self):
@@ -369,15 +370,20 @@ class GameScreen(Screen):
                     sounds.play("fanfare")
                     level = self.find_level(self.levelnum+1)
                     if level:
-                        self.exit_to(GameScreen,score=self.score,level=level,levelnum=self.levelnum+1)
+                        self.exit_to(GameScreen,score=self.score,level=level,
+                                     levelnum=self.levelnum+1,ammo=self.special_ammo,
+                                     special=self.special_ball)
                     else:
                         self.exit_to(VictoryScreen,score=self.score)
                 elif phex in self.level.powerups:
                     bname = self.hexfield.collect(*phex)
                     if bname:
                         B = getattr(graphics,bname)
-                        self.special_ammo = B.ammo
-                        self.special_ball = B
+                        if B == self.special_ball:
+                            self.special_ammo += B.ammo
+                        else:
+                            self.special_ball = B
+                            self.special_ammo = B.ammo
                         sounds.play("chamber")
                         b = self[repr(phex)]
                         if b:
@@ -552,13 +558,16 @@ class TitleScreen(Screen):
             steplist.append(1000)
             self.camera.animator.sequence("looking_at",poslist,steplist)
 
-
     def pick(self,label):
         name = label.target._name
         if name == "Start":
             self.exit_to(GameScreen)
         elif name == "Quit":
             self.exit_to(None)
+
+    def keydown(self,sym,mods):
+        if sym == pygletkey.F3:
+            self.exit_to(GameScreen,levelnum=0,level=self.level)
 
 class VictoryScreen(Screen):
     victory_text = """After such a terrible ordeal, you creep out
