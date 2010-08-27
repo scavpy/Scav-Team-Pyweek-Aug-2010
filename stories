@@ -93,17 +93,22 @@ User Stories
 22. There will be Mimics.  They look like a wall piece unless hit by a
     ball. They they become like a Hunter for up to 10 bounces. Then they
     go back into hiding.
+    status: done
 
 23. There will be a level where you need to be in first-person mode to spot
     a section of wall that you can walk through.
+    status: done
 
-24. There will be a bowling-ball power-up that makes your balls slower
-    and much more destructive.
+24. There will be a bowling-ball power-up that is slower and more destructive.
+    status: done
 
 25. There will be a spiked ball that will not bounce from hexagons that it
     destroys.
+    status: done
 
 26. There will be a smiley ball that cannot harm the player.
+    status: done
 
 27. There will be a blitzball that will go very fast in a straight line and
     deal 99,999 damage to the first hexagon it hits. Short lived ball.
+    status: done
