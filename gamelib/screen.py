@@ -118,7 +118,7 @@ class GameScreen(Screen):
         "#player":{"obj-filename":"thedetective.obj",
                    "obj-pieces":["Body","Hat","Feet0","Eyes"],
                    "mtl-override-pieces":["Body"],
-                   "override-mtl":"Gold"},
+                   "override-mtl":"Purple"},
         }
 
     def __init__(self,name="",level=None,levelnum=1,score=0,**kw):
@@ -156,7 +156,7 @@ class GameScreen(Screen):
         self.vport = tuple(vport)
         self.reload = 0
         self.special_ammo = 10
-        self.special_ball = SpikeBall
+        self.special_ball = None
         sounds.play(self.level.sound)
             
     def __del__(self):
@@ -402,10 +402,10 @@ class GameScreen(Screen):
                     if ball.maxdestroy > 0 and not dying:
                         points = self.hexfield.destroy(hc,hr)
                         if points:
-                            sounds.play("crack")
+                            sounds.play(points[1])
                             ball.maxdestroy -= 1
                             ball.duration -= 1000
-                            self.inc_score(points)
+                            self.inc_score(points[0])
                             if not ball.bounces:
                                 vel = ball.velocity
                     ball.velocity = vel

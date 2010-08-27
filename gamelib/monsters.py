@@ -116,7 +116,7 @@ class Hunter(Monster):
         elif isinstance(what,graphics.Player):
             self.turn_to(direction)
             self.velocity = Vec(0,0,0)
-            sounds.play("roar")
+            sounds.play("munch")
         else:
             self.turn_to(direction)
             self.pos = where
@@ -160,7 +160,7 @@ class Mimic(Monster):
         elif isinstance(what,graphics.Player):
             self.turn_to(direction)
             self.velocity = Vec(0,0,0)
-            sounds.play("roar")
+            sounds.play("munch")
         else:
             self.turn_to(direction)
             self.pos = where

@@ -24,6 +24,9 @@ sound_files = {
     "pain":"ow.ogg",
     "chime":"chime.ogg",
     "chamber":"chamber.ogg",
+    "ring":"ring.ogg",
+    "crunch":"crunch.ogg",
+    "munch":"munching.ogg"
 }
 
 sounds = {}
