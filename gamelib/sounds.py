@@ -26,7 +26,9 @@ sound_files = {
     "chamber":"chamber.ogg",
     "ring":"ring.ogg",
     "crunch":"crunch.ogg",
-    "munch":"munching.ogg"
+    "munch":"munching.ogg",
+    "bellow":"foghorn.ogg",
+    "rumble":"rumble.ogg",
 }
 
 sounds = {}

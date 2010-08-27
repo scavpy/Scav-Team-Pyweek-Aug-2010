@@ -105,23 +105,29 @@ class Wanderer(Monster):
 class Hunter(Monster):
     """ On collision with a ball, follow the track
     of the ball back towards the player!"""
+    def hunt(what,where,factor=1.0):
+        self.turn_to(what.velocity * -factor)
+        self.pos = what.pos
+        # Eat the ball!
+        what._expired = True
+
+    def eat(what,direction):
+        self.turn_to(direction)
+        self.velocity = Vec(0,0,0)
+
     def on_collision(self,what,where,direction):
         if isinstance(what,graphics.Ball):
-            self.turn_to(what.velocity * -1)
             self.harm_type = "provoked a"
-            self.pos = what.pos
-            # Eat the ball!
-            what._expired = True
             sounds.play("roar")
+            self.hunt(what,where)
         elif isinstance(what,graphics.Player):
-            self.turn_to(direction)
-            self.velocity = Vec(0,0,0)
+            self.eat(what,direction)
             sounds.play("munch")
         else:
             self.turn_to(direction)
             self.pos = where
 
-class Mimic(Monster):
+class Mimic(Hunter):
     """ Hides until hit, then goes on a short rampage,
     then goes back into hiding"""
     def __init__(self,name,**kw):
@@ -150,16 +156,12 @@ class Mimic(Monster):
 
     def on_collision(self,what,where,direction):
         if isinstance(what,graphics.Ball):
-            self.turn_to(what.velocity * -1.1)
+            self.hunt(what,where,1.1)
             self.harm_type = "provoked a"
-            self.pos = what.pos
-            # Eat the ball!
-            what._expired = True
             sounds.play("roar")
             self.enrage()
         elif isinstance(what,graphics.Player):
-            self.turn_to(direction)
-            self.velocity = Vec(0,0,0)
+            self.eat(what,direction)
             sounds.play("munch")
         else:
             self.turn_to(direction)
@@ -173,6 +175,36 @@ class Mimic(Monster):
                 self.velocity = Vec(0,0,0)
                 self.prepare()
 
+    def step(self,ms):
+        super(Mimic,self).step(ms)
+        if self.hiding:
+            self.pieces = self.mimic_obj.pieces()
+
+class Balrog(Monster):
+    _default_geom = {"radius":0.4}
+    speed = 0.6
+    """ Like a Hunter, but on collision with a wall,
+    pick a random direction"""
+
+    def on_collision(self,what,where,direction):
+        if isinstance(what,graphics.Ball):
+            self.harm_type = "provoked the"
+            sounds.play("rumble")
+            self.hunt(what,where,0.9)
+        elif isinstance(what,graphics.Player):
+            self.eat(what,direction)
+            sounds.play("bellow")
+        else:
+            r = self.velocity.length()
+            if r < 0.001 or r > 0.04:
+                r = 0.01
+            r *= random.gauss(1.0,0.05)
+            self.angle = random.random() * 360
+            a = radians(self.angle)
+            self.velocity = Vec(cos(a),sin(a)) * r
+            sounds.play("rumble")
+
+
 
 MonsterStyles = {
     "Wanderer": {"obj-filename":"wanderer.obj",
@@ -185,18 +217,37 @@ MonsterStyles = {
                  "rate":100},
     "Hunter": {"obj-filename":"hunter.obj",
                "mtl-override-pieces":["Eye"],
-               "override-mtl":"Jade"},
+               "override-mtl":"Jade",
+               "frames":{"1":["Body","Legs","Eye","Pincers1"],
+                         "2":["Body","Legs","Eye","Pincers2"],
+                         "3":["Body","Legs","Eye","Pincers3"],
+                         "4":["Body","Legs","Eye","Pincers2"]},
+               "rate":100,},
     "Mimic": {"obj-filename":"hunter.obj",
-               "mtl-override-pieces":["Eye"],
-               "override-mtl":"Blood",
-               "mimic-filename":"wall.obj"},
+              "mtl-override-pieces":["Eye"],
+              "override-mtl":"Blood",
+              "frames":{"1":["Body","Legs","Eye","Pincers1"],
+                        "2":["Body","Legs","Eye","Pincers2"],
+                        "3":["Body","Legs","Eye","Pincers3"],
+                        "4":["Body","Legs","Eye","Pincers2"]},
+              "rate":100,
+              "mimic-filename":"wall.obj"},
     "Squashy": {"obj-filename":"squelchy.obj",
-               "mtl-override-pieces":[],
-               "override-mtl":"White"},
+                "mtl-override-pieces":[],
+                "override-mtl":"White"},
     "Monster": {"obj-filename":"crab.obj",
-               "mtl-override-pieces":["Body"],
-               "override-mtl":"Steel"},
+                "mtl-override-pieces":["Body"],
+                "override-mtl":"Steel"},
+    "Balrog": {"obj-filename":"balrog.obj",
+               "frames":{"1":["Step0"],
+                         "2":["Step1"],
+                         "3":["Step0"],
+                         "4":["Step2"]},
+               "rate":250},
     "Shuttler": {"obj-filename":"crab.obj",
-               "mtl-override-pieces":["Body"],
-               "override-mtl":"Steel"},
+                 "mtl-override-pieces":["Body"],
+                 "frames":{"1":["Body","LPincer","RPincer","LFlipper","RFlipper","Legs1"],
+                           "2":["Body","LPincer","RPincer","LFlipper","RFlipper","Legs2"]},
+                 "rate":100,
+                 "override-mtl":"Steel"},
     }
