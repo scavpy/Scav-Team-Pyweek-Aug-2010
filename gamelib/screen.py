@@ -87,10 +87,7 @@ class Screen(part.Group):
         """Pick topmost object at x,y"""
         picking.start(x,y,1,1)
         self.draw('PICK')
-        try:
-            objects = picking.end()
-        except AttributeError:
-            objects = None
+        objects = picking.end()
         if objects:
             minz,maxz,label = objects[0]
             self.pick(label)
@@ -122,11 +119,6 @@ class GameScreen(Screen):
                    "obj-pieces":["Body","Hat","Feet0","Eyes"],
                    "mtl-override-pieces":["Body"],
                    "override-mtl":"Gold"},
-        "Ball":{ "obj-filename":"prismball.obj" },
-        "BlitzBall":{ "obj-filename":"blitzball.obj" },
-        "BowlingBall":{ "obj-filename":"bowlingball.obj" },
-        "SpikeBall":{ "obj-filename":"spikeball.obj" },
-        "HappyBall":{ "obj-filename":"faceball.obj" },
         }
 
     def __init__(self,name="",level=None,levelnum=1,score=0,**kw):
@@ -137,6 +129,7 @@ class GameScreen(Screen):
         self.score = score
         self.light = lighting.claim_light()
         stylesheet.load(monsters.MonsterStyles)
+        stylesheet.load(graphics.BallStyles)
         super(GameScreen,self).__init__(name,**kw)
         self.set_mode("story" if self.story_page is not None
                       else "playing")
@@ -475,6 +468,7 @@ class TitleScreen(Screen):
     def build_parts(self,**kw):
         self.light = lighting.claim_light()
         stylesheet.load(monsters.MonsterStyles)
+        stylesheet.load(graphics.BallStyles)
         start_btn = panel.LabelPanel(
             "Start", text=" Start ",
             geom=dict(pos=(512,200,0)),
@@ -485,7 +479,7 @@ class TitleScreen(Screen):
             style_classes=['button'])
         ov = OrthoView(
             "ortho", [start_btn, quit_btn],
-            geom=dict(left=0,right=1024,top=768,bottom=0),
+            geom=dict(left=0,right=1024,top=768,bottom=0,far=1000),
             style={"ClearColor":(0,0,0,0)})
         if main.options.time:
             ov.append(ClockPart(geom=dict(pos=(50,50,0))))
@@ -499,6 +493,11 @@ class TitleScreen(Screen):
         for coords, classname in level.monsters.items():
             pos = collision.h_centre(*coords)
             M = getattr(monsters,classname,monsters.Monster)
+            m = M(classname, geom=dict(pos=pos,angle=0))
+            sv.append(m)
+        for coords, classname in level.powerups.items():
+            pos = collision.h_centre(*coords)
+            M = getattr(graphics,classname,graphics.Ball)
             m = M(classname, geom=dict(pos=pos,angle=0))
             sv.append(m)
         sv.camera.look_at(pos,10)

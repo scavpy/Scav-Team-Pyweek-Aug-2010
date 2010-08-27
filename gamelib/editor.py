@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 """
    Simple level editor
 
@@ -16,10 +17,7 @@ from tdgl import viewpoint, lighting, part, picking, panel, stylesheet
 
 import levelfile, collision, graphics, monsters
 
-basic_hexes = {pygkey.R:"Hf00",
-               pygkey.G:"H0f0",
-               pygkey.B:"H00f",
-               pygkey.SPACE:" ",
+basic_hexes = {pygkey.SPACE:" ",
                pygkey._3:"#",
                pygkey.X:"X",
                pygkey.S:"S",
@@ -35,13 +33,16 @@ class EditorWindow(pyglet.window.Window):
     def __init__(self,fname=None,**kw):
         super(EditorWindow,self).__init__(**kw)
         self.level = None
-        self.fname = fname
         if fname:
             self.level = levelfile.load_level(fname)
+        else:
+            fname = "untitled.lev"
+        self.fname = fname
         if not self.level:
             self.level = levelfile.Level()
         if options.name:
             self.level.name = options.name
+        self.set_caption("{0} - {1}".format(fname,self.level.name))
         if options.story:
             with open(options.story,"ru") as f:
                 self.level.story = f.read().split("\n\n")
@@ -50,7 +51,9 @@ class EditorWindow(pyglet.window.Window):
         self.cellcode = "#"
         self.rgb = [1,1,1]
         stylesheet.load(monsters.MonsterStyles)
+        stylesheet.load(graphics.BallStyles)
         self.get_monster_list()
+        self.get_balls_list()
         self.build_parts()
 
     def get_monster_list(self):
@@ -61,6 +64,15 @@ class EditorWindow(pyglet.window.Window):
             if name == "Monster": continue
             if issubclass(k,monsters.Monster):
                 self.monster_list.append(name)
+
+    def get_balls_list(self):
+        self.balls_list = []
+        for name in dir(graphics):
+            k = getattr(graphics,name)
+            if not isclass(k): continue
+            if name == "Ball": continue
+            if issubclass(k,graphics.Ball):
+                self.balls_list.append(name)
                            
     def build_parts(self):
         view = viewpoint.OrthoView(
@@ -95,13 +107,17 @@ class EditorWindow(pyglet.window.Window):
             ColourBar("blue",2,
                       geom=dict(scale=10,pos=(40,10,0))))
 
-        tools.append(panel.LabelPanel("cellcode",
-                                      text=self.cellcode,
-                                      geom=dict(pos=(50,250,0))))
+        tools.append(
+            panel.LabelPanel("cellcode",
+                             text=self.cellcode,
+                             style={"font_size":10},
+                             geom={"pos":(50,250,0)}))
                              
         self.parts = part.Group("parts",[view,tools])
         for coords,mname in self.level.monsters.items():
-            self.add_monster_to_view(coords,mname)
+            self.add_thing_to_view(coords,monsters,mname)
+        for coords,pname in self.level.powerups.items():
+            self.add_thing_to_view(coords,graphics,pname)
 
         self.parts.restyle(True)
 
@@ -127,6 +143,8 @@ class EditorWindow(pyglet.window.Window):
             self.set_hex_colour()
         elif sym == pygkey.M:
             self.toggle_monster()
+        elif sym == pygkey.P:
+            self.toggle_powerup()
             
     def on_mouse_press(self,x,y,button,mods):
         if x < 768:
@@ -139,8 +157,13 @@ class EditorWindow(pyglet.window.Window):
             self.monster_list = self.monster_list[1:] + self.monster_list[:1]
         self.set_cell_code(self.monster_list[0])
 
-    def add_monster_to_view(self,coords,monstername):
-        M = getattr(monsters,monstername)
+    def toggle_powerup(self):
+        if self.cellcode in self.balls_list:
+            self.balls_list = self.balls_list[1:] + self.balls_list[:1]
+        self.set_cell_code(self.balls_list[0])
+
+    def add_thing_to_view(self,coords,module,classname):
+        M = getattr(module,classname)
         mname = repr(coords)
         m = M(mname)
         m.pos = collision.h_centre(*coords)
@@ -148,19 +171,27 @@ class EditorWindow(pyglet.window.Window):
         self.parts["view"].append(m)
 
     def place_monster(self,coords,monstername):
-        self.unplace_monster(coords)
-        self.level.monsters[coords] = monstername
-        self.add_monster_to_view(coords,monstername)
+        lev = self.level
+        self.unplace(coords)
+        lev.monsters[coords] = monstername
+        self.add_thing_to_view(coords,monsters,monstername)
 
-    def unplace_monster(self,coords):
+    def unplace(self,coords):
         if coords in self.level.monsters:
             del self.level.monsters[coords]
+        if coords in self.level.powerups:
+            del self.level.powerups[coords]
         mname = repr(coords)
         view = self.parts["view"]
         m = view[mname]
         if m:
             view.remove(m)
-        
+
+    def place_powerup(self,coords,ballname):
+        lev = self.level
+        self.unplace(coords)
+        lev.powerups[coords] = ballname
+        self.add_thing_to_view(coords,graphics,ballname)
         
     def click_in_grid(self,x,y,button,mods):
         if button != 1: return
@@ -180,12 +211,14 @@ class EditorWindow(pyglet.window.Window):
             if (coords not in [level.start,level.exit]
                 and coords in level.hexes):
                 del level.hexes[coords]
-            if coords in level.monsters:
-                self.unplace_monster(coords)
+            self.unplace(coords)
         elif self.cellcode in self.monster_list:
             self.place_monster(coords,self.cellcode)
+        elif self.cellcode in self.balls_list:
+            self.place_powerup(coords,self.cellcode)
+            level.hexes[coords] = "P"
         else:
-            self.level.hexes[coords] = self.cellcode
+            level.hexes[coords] = self.cellcode
         self.hexfield.build_dl()
         self.hexfield.prepare()
 
@@ -223,6 +256,7 @@ class ColourBar(part.ScalePart):
 
     def setup_style(self):
         glDisable(GL_LIGHTING)
+        glDisable(GL_TEXTURE_2D)
         glLineWidth(2)
         
     def render(self,mode):
