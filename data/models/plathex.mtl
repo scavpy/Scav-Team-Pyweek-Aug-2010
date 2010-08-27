@@ -2,11 +2,11 @@
 # Material Count: 1
 newmtl Powerup
 Ns 120
-Ka 0.800000 0.800000 0.800000 1.0
-Kd 0.5 0.5 0.5 1.0
-Ks 0.9 0.9 0.9 1.0
+Ka 0.200000 0.800000 0.200000 1.0
+Kd 1.0 1.0 1.0 1.0
+Ks 0.0 1.0 0.0 1.0
 d 1
 illum 3
-map_Kd gold.png
+map_Kd platinum.png
 
 

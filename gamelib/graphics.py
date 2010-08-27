@@ -25,6 +25,10 @@ TILE_OBJECTS = {
     ">":objpart.get_obj("ewall.obj"),
     "<":objpart.get_obj("wwall.obj"),
     "O":objpart.get_obj("trickwall.obj"),
+    "Au":objpart.get_obj("goldhex.obj"),
+    "Ag":objpart.get_obj("silverhex.obj"),
+    "Cu":objpart.get_obj("copperhex.obj"),
+    "Pt":objpart.get_obj("plathex.obj"),
 }
 
 def cellcolour(cellcode):
@@ -91,6 +95,9 @@ class HexagonField(part.Part):
                 elif k[0] == "H":  # hexagon tile
                     glColor4f(*cellcolour(k))
                     glCallList(TILE_OBJECTS["H"].mesh_dls["hex"])
+                elif k in ["Au","Ag","Cu","Pt"]:
+                    glColor4f(1.0,1.0,1.0,1.0)
+                    glCallList(TILE_OBJECTS[k].mesh_dls["hex"])
                 elif k[0] in "#^v<>O": #wall
                     glColor4f(*cellcolour(k))
                     glCallList(TILE_OBJECTS[k[0]].mesh_dls["hex"])
@@ -139,7 +146,7 @@ class HexagonField(part.Part):
         if c:
             self.cells[hc,hr] = 0 # blank
             self.prepare()
-            return 10
+            return c
 
     def collect(self,hc,hr):
         """Collect the powerup at hc,hr
@@ -187,7 +194,7 @@ class Ball(objpart.ObjPart):
     lethal = True
     speed = 0.01
     duration = 6000
-    maxdestroy = 3
+    maxdestroy = 4
     bounces = True
     ammo = 1
 

@@ -23,6 +23,10 @@ basic_hexes = {pygkey.SPACE:" ",
                pygkey.S:"S",
                pygkey.DELETE:None,
                pygkey.O:"O",
+               pygkey.A:"Ag",
+               pygkey.G:"Au",
+               pygkey.C:"Cu",
+               pygkey.T:"Pt"
                }
 
 TOOLW = 1024-768
@@ -218,6 +222,8 @@ class EditorWindow(pyglet.window.Window):
         elif self.cellcode in self.balls_list:
             self.place_powerup(coords,self.cellcode)
             level.hexes[coords] = "P"
+        elif self.cellcode in ["Au","Ag","Cu","Pt"]:
+            level.hexes[coords] = self.cellcode
         else:
             level.hexes[coords] = self.cellcode
         self.hexfield.build_dl()

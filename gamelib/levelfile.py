@@ -32,8 +32,18 @@ import os
 from pyglet import resource
 import pickle
 import copy
+import re
 
 import collision
+
+HEXPOINTS = {
+    "Pt":1000,
+    "Au":750,
+    "Ag":500,
+    "Cu":250,
+    "H000":150,
+    "Hfff":100,
+    }
 
 class Level:
     def __init__(self,leveldict=None):
@@ -73,15 +83,37 @@ class Level:
         return [(hc,hr,self.hexes[hc,hr])
                 for hc,hr in collision.nearest_neighbours(x,y,2)
                 if self.hexes.get((hc,hr)," ") not in " SXOP"]
+    
+    def hexpoints(self,hex):
+        p = HEXPOINTS.get(hex)
+        if p:
+            return p
+        if hex.startswith("H"):
+            h,r,g,b = hex
+            if r == g == b:
+                return 5
+            elif re.match("H[f0][f0][f0]",hex):
+                return 50
+            elif "f" in hex:
+                return 20
+            else:
+                return 10
+        else:
+            return False
 
     def destroy(self,hc,hr):
         """Destroy the hexagon at hc,hr.
         Return false if not possible"""
         c = self.hexes.get((hc,hr)," ")
-        if c[0] != "H":
+        points = self.hexpoints(c)
+        if c in ["Cu","Ag","Au","Pt"]:
+            s = "ring"
+        elif c.startswith("H"):
+            s = "crunch"
+        if not points:
             return False
         self.hexes[hc,hr] = " "
-        return c
+        return (points,s)
 
     def collect(self,hc,hr):
         """Collect powerup at hc,hr
