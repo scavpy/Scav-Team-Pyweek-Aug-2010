@@ -29,6 +29,7 @@ TILE_OBJECTS = {
     "Ag":objpart.get_obj("silverhex.obj"),
     "Cu":objpart.get_obj("copperhex.obj"),
     "Pt":objpart.get_obj("plathex.obj"),
+    "L":objpart.get_obj("lava.obj"),
 }
 
 def cellcolour(cellcode):
@@ -98,7 +99,7 @@ class HexagonField(part.Part):
                 elif k in ["Au","Ag","Cu","Pt"]:
                     glColor4f(1.0,1.0,1.0,1.0)
                     glCallList(TILE_OBJECTS[k].mesh_dls["hex"])
-                elif k[0] in "#^v<>O": #wall
+                elif k[0] in "#^v<>OL": #wall
                     glColor4f(*cellcolour(k))
                     glCallList(TILE_OBJECTS[k[0]].mesh_dls["hex"])
                 elif k[0] == "X":  # exit

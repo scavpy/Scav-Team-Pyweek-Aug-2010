@@ -26,7 +26,8 @@ basic_hexes = {pygkey.SPACE:" ",
                pygkey.A:"Ag",
                pygkey.G:"Au",
                pygkey.C:"Cu",
-               pygkey.T:"Pt"
+               pygkey.T:"Pt",
+               pygkey.L:"L",
                }
 
 TOOLW = 1024-768
@@ -52,6 +53,10 @@ class EditorWindow(pyglet.window.Window):
                 self.level.story = f.read().split("\n\n")
         if options.sound:
             self.level.sound = options.sound
+        if options.music:
+            self.level.music = options.music
+        if options.no_music:
+            self.level.music = "No Music"
         self.cellcode = "#"
         self.rgb = [1,1,1]
         stylesheet.load(monsters.MonsterStyles)
@@ -304,6 +309,8 @@ if __name__ == '__main__':
     add("--story",default=None,help="Story file to use for level")
     add("--sound",default=None,help="Sound effect to announce level")
     add("--name",default=None,help="Level name")
+    add("--music",default=None,help="Level music")
+    add("--no-music",default=False,action="store_true",help="No level music")
     options,args = op.parse_args()
     if len(args) != 1:
         op.error("Must give exactly one filename")

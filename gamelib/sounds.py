@@ -43,6 +43,8 @@ def music_start(name):
     if f:
         mixer.music.load(filepath(f))
         mixer.music.play(-1)
+    else:
+        mixer.music.stop()
 
 def music_fade(ms):
     if not mixer:
@@ -53,6 +55,12 @@ def play(name):
     s = sounds.get(name)
     if s:
         s.play()
+
+def music_stop():
+    if not mixer:
+        return
+    mixer.music.stop()
+
 
 def init():
     if not mixer:

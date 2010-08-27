@@ -8,6 +8,7 @@
   "exit": (col,row),
   "monsters": { (col,row): monster_code },
   "sound": sfx_name,
+  "music": music_name,
   "powerups": { (col,row): ball_code }
  }
 
@@ -53,6 +54,7 @@ class Level:
         self.start = (2,2)
         self.exit = (8,8)
         self.sound = None
+        self.music = None
         self.monsters = {}
         self.powerups = {}
         if leveldict:
@@ -72,7 +74,8 @@ class Level:
         d = dict(name=self.name, story=self.story,
                  start=self.start, exit=self.exit,
                  hexes=self.hexes, monsters=self.monsters,
-                 sound=self.sound, powerups=self.powerups)
+                 sound=self.sound, powerups=self.powerups,
+                 music=self.music)
         with open(os.path.join("data",fname),"wb") as f:
             pickle.dump(d,f,-1)
 

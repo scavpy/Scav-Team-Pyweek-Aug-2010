@@ -131,6 +131,8 @@ class GameScreen(Screen):
         self.light = lighting.claim_light()
         stylesheet.load(monsters.MonsterStyles)
         stylesheet.load(graphics.BallStyles)
+        if level.music:
+            self.music = level.music
         super(GameScreen,self).__init__(name,**kw)
         self.set_mode("story" if self.story_page is not None
                       else "playing")
