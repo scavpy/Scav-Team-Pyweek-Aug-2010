@@ -7,7 +7,7 @@
 """
 from math import atan2, degrees, fmod, sin, cos, radians
 import random
-from tdgl import objpart, animator
+from tdgl import objpart, animator, lighting
 from tdgl.gl import *
 from tdgl.vec import Vec
 import graphics
@@ -105,13 +105,13 @@ class Wanderer(Monster):
 class Hunter(Monster):
     """ On collision with a ball, follow the track
     of the ball back towards the player!"""
-    def hunt(what,where,factor=1.0):
+    def hunt(self,what,where,factor=1.0):
         self.turn_to(what.velocity * -factor)
         self.pos = what.pos
         # Eat the ball!
         what._expired = True
 
-    def eat(what,direction):
+    def eat(self,what,direction):
         self.turn_to(direction)
         self.velocity = Vec(0,0,0)
 
@@ -180,11 +180,22 @@ class Mimic(Hunter):
         if self.hiding:
             self.pieces = self.mimic_obj.pieces()
 
-class Balrog(Monster):
+class Balrog(Hunter):
     _default_geom = {"radius":0.4}
     speed = 0.6
     """ Like a Hunter, but on collision with a wall,
     pick a random direction"""
+
+    def __init__(self,name='',**kw):
+        super(Balrog,self).__init__(name,**kw)
+        self.dark = lighting.claim_light()
+        lighting.light_colour(self.dark,(0.1,-0.3,-0.3,1.0))
+        x,y,z = self.pos
+        lighting.light_position(self.dark,(x,y,1.0,1.0))
+        lighting.light_switch(self.dark,True)
+
+    def __del__(self):
+        lighting.release_light(self.dark)
 
     def on_collision(self,what,where,direction):
         if isinstance(what,graphics.Ball):
@@ -202,8 +213,13 @@ class Balrog(Monster):
             self.angle = random.random() * 360
             a = radians(self.angle)
             self.velocity = Vec(cos(a),sin(a)) * r
-            sounds.play("rumble")
+            if random.random() < 0.2:
+                sounds.play("rumble")
 
+    def step(self,ms):
+        super(Balrog,self).step(ms)
+        x,y,z = self.pos
+        lighting.light_position(self.dark,(x,y,1.0,1.0))
 
 
 MonsterStyles = {
