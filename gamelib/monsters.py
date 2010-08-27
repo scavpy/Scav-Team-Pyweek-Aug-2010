@@ -70,7 +70,7 @@ class Shuttler(Monster):
         self.pos = where
 
 class Squashy(Monster):
-    _default_geom = {"radius":0.7}
+    _default_geom = {"radius":0.49}
     speed = 0.6
     harm_type = "contaminated by a"
     """ On collision with a ball, die"""

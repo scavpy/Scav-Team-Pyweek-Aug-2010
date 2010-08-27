@@ -20,6 +20,7 @@ import levelfile
 import monsters
 import main # for options
 from graphics import ClockPart, Ball, Player, ScreenFrame, StoryPanel
+from graphics import BlitzBall, BowlingBall, SpikeBall, HappyBall
 import sounds
 
 class Screen(part.Group):
@@ -86,10 +87,7 @@ class Screen(part.Group):
         """Pick topmost object at x,y"""
         picking.start(x,y,1,1)
         self.draw('PICK')
-        try:
-            objects = picking.end()
-        except AttributeError:
-            objects = None
+        objects = picking.end()
         if objects:
             minz,maxz,label = objects[0]
             self.pick(label)
@@ -121,7 +119,6 @@ class GameScreen(Screen):
                    "obj-pieces":["Body","Hat","Feet0","Eyes"],
                    "mtl-override-pieces":["Body"],
                    "override-mtl":"Gold"},
-        "Ball":{ "obj-filename":"prismball.obj" },
         }
 
     def __init__(self,name="",level=None,levelnum=1,score=0,**kw):
@@ -132,6 +129,7 @@ class GameScreen(Screen):
         self.score = score
         self.light = lighting.claim_light()
         stylesheet.load(monsters.MonsterStyles)
+        stylesheet.load(graphics.BallStyles)
         super(GameScreen,self).__init__(name,**kw)
         self.set_mode("story" if self.story_page is not None
                       else "playing")
@@ -157,6 +155,8 @@ class GameScreen(Screen):
         glGetIntegerv(GL_VIEWPORT, vport)
         self.vport = tuple(vport)
         self.reload = 0
+        self.special_ammo = 10
+        self.special_ball = SpikeBall
         sounds.play(self.level.sound)
             
     def __del__(self):
@@ -200,7 +200,9 @@ class GameScreen(Screen):
         balls = part.Group("balls",[])
         monsters = part.Group("monsters",
                               self.build_monsters(self.level))
-        sv = SceneView("scene",[hf,player,balls,monsters])
+        powerups = part.Group("powerups",
+                              self.build_powerups(self.level))
+        sv = SceneView("scene",[monsters,hf,player,balls,powerups])
         sv.camera.look_at((x,y,0),10)
         sv.camera.look_from_spherical(87,-90,300)
         sv.camera.look_from_spherical(80,-90,100,1000)
@@ -231,6 +233,17 @@ class GameScreen(Screen):
             ms.append(m)
         return ms
 
+    def build_powerups(self,level):
+        ps = []
+        for coords, classname in level.powerups.items():
+            pos = collision.h_centre(*coords)
+            P = getattr(graphics,classname,graphics.Ball)
+            p = P(repr(coords), geom=dict(pos=pos,angle=0))
+            p.duration = float('inf')
+            ps.append(p)
+        return ps
+
+
     def dismiss_story_page(self):
         s = self.story_page + 1
         pn = self["story"]
@@ -249,33 +262,38 @@ class GameScreen(Screen):
         self.score += points
         self["frame"].update_label("score","{0:05}",self.score)
 
-    def add_ball(self,velocity,maxdestroy=4):
-        r = 0.2
-        ball = Ball(velocity=velocity,
-                    maxdestroy=maxdestroy,
-                    geom=dict(radius=r))
+    def add_ball(self,direction,Kind=Ball):
+        ball = Kind(direction=direction)
+        r = ball.getgeom("radius")
         player = self.player
         pr = player.getgeom('radius',0.49)
-        ball.pos = velocity.normalise() * (r + pr + 0.1) + player.pos
+        ball.pos = ball.velocity.normalise() * (r + pr + 0.1) + player.pos
         ball.restyle(True)
         self["balls"].append(ball)
              
     def click(self,x,y,button,mods):
         """ Click to fire """
-        if button != 1 or self.mode == "dying":
+        if button not in (1,4):
+            return
+        if self.mode == "dying":
             return
         if self.mode == "story":
             self.dismiss_story_page()
             return
         if self.reload:
             return
+        if button == 4:
+            if self.special_ammo <= 0:
+                return
+            self.special_ammo -= 1
         if self.first_person:
             a = radians(self.player.angle)
-            v = Vec(cos(a),sin(a)) * 0.01 # per ms
+            v = Vec(cos(a),sin(a))
         else:
             vx,vy,vw,vh = self.vport
-            v = Vec(x - (vx + vw//2), y - (vy + vh//2)).normalise() * 0.01
-        self.add_ball(v)
+            v = Vec(x - (vx + vw//2), y - (vy + vh//2))
+        kind = (self.special_ball if button == 4 else Ball)
+        self.add_ball(direction=v,Kind=kind)
         self.reload = 300
 
     def keydown(self,sym,mods):
@@ -354,6 +372,16 @@ class GameScreen(Screen):
                         self.exit_to(GameScreen,score=self.score,level=level,levelnum=self.levelnum+1)
                     else:
                         self.exit_to(VictoryScreen,score=self.score)
+                elif phex in self.level.powerups:
+                    bname = self.hexfield.collect(*phex)
+                    if bname:
+                        B = getattr(graphics,bname)
+                        self.special_ammo = B.ammo
+                        self.special_ball = B
+                        sounds.play("chamber")
+                        b = self[repr(phex)]
+                        if b:
+                            self["powerups"].remove(b)
 
     def step_balls(self,ms):
         player = self.player
@@ -370,7 +398,7 @@ class GameScreen(Screen):
                 P = collision.collides(hc,hr,pos,r,v,collision.COLLIDE_REBOUND)
                 if P:
                     newpos, bv_times_ms = P
-                    ball.velocity = bv_times_ms * (1/ms)
+                    vel = bv_times_ms * (1/ms)
                     if ball.maxdestroy > 0 and not dying:
                         points = self.hexfield.destroy(hc,hr)
                         if points:
@@ -378,9 +406,14 @@ class GameScreen(Screen):
                             ball.maxdestroy -= 1
                             ball.duration -= 1000
                             self.inc_score(points)
+                            if not ball.bounces:
+                                vel = ball.velocity
+                    ball.velocity = vel
                     break
             ball.pos = newpos
-            if not dying and (ball.pos - ppos).length() < (r + pr):
+            if (ball.lethal
+                and not dying 
+                and (ball.pos - ppos).length() < (r + pr)):
                 self.player_die("ball trauma")
 
     def step_monsters(self,ms):
@@ -430,6 +463,7 @@ class GameScreen(Screen):
     def step(self,ms):
         if ms == 0:
             return
+        lighting.step(ms)
         if self.mode == "story":
             return
         if self.reload > 0:
@@ -438,7 +472,6 @@ class GameScreen(Screen):
         self.step_balls(ms)
         self.step_contents(ms)
         if self.mode == "dying":
-            lighting.step(ms)
             if self.dying_time <= 0:
                 self.exit_to(ScoreScreen,
                              score=self.score,
@@ -458,6 +491,7 @@ class TitleScreen(Screen):
     def build_parts(self,**kw):
         self.light = lighting.claim_light()
         stylesheet.load(monsters.MonsterStyles)
+        stylesheet.load(graphics.BallStyles)
         start_btn = panel.LabelPanel(
             "Start", text=" Start ",
             geom=dict(pos=(512,200,0)),
@@ -468,7 +502,7 @@ class TitleScreen(Screen):
             style_classes=['button'])
         ov = OrthoView(
             "ortho", [start_btn, quit_btn],
-            geom=dict(left=0,right=1024,top=768,bottom=0),
+            geom=dict(left=0,right=1024,top=768,bottom=0,far=1000),
             style={"ClearColor":(0,0,0,0)})
         if main.options.time:
             ov.append(ClockPart(geom=dict(pos=(50,50,0))))
@@ -483,6 +517,12 @@ class TitleScreen(Screen):
             pos = collision.h_centre(*coords)
             M = getattr(monsters,classname,monsters.Monster)
             m = M(classname, geom=dict(pos=pos,angle=0))
+            sv.append(m)
+        for coords, classname in level.powerups.items():
+            pos = collision.h_centre(*coords)
+            M = getattr(graphics,classname,graphics.Ball)
+            m = M(classname, geom=dict(pos=pos,angle=0))
+            m.duration = float('inf')
             sv.append(m)
         sv.camera.look_at(pos,10)
         sv.camera.look_from_spherical(45,270,70)

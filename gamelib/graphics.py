@@ -102,8 +102,15 @@ class HexagonField(part.Part):
                             (-0.5,-0.5), (0.5,0.5),
                             (-0.5,0.5), (0.5,-0.5)]:
                             glVertex2f(x,y)
-                else:
-                    pass # TODO the rest
+                elif k[0] == "P": #powerup square
+                    with gl_begin(GL_TRIANGLE_FAN):
+                        glColor4f(1.0,1.0,0.0,1.0)
+                        glVertex2f(0,0)
+                        glColor4f(0.5,0.0,0.0,0.1)
+                        for x,y in hexcorners:
+                            glVertex2f(x,y)
+                        glVertex2f(*hexcorners[0])
+
         self.all_dl = glGenLists(1)
 
     def setup_style(self):
@@ -134,6 +141,16 @@ class HexagonField(part.Part):
             self.prepare()
             return 10
 
+    def collect(self,hc,hr):
+        """Collect the powerup at hc,hr
+        Return false if not possible"""
+        p = self.level.collect(hc,hr)
+        if p:
+            self.cells[hc,hr] = 0 # blank
+            self.prepare()
+        return p
+
+
 class StoryPanel(panel.LabelPanel):
     _default_geom = {"pos":(512,400,0),
                      "text_width":800 }
@@ -157,20 +174,61 @@ class Player(objpart.ObjPart):
     _default_geom = {'radius':0.49}
     pass
 
+BallStyles = {
+    "Ball":{ "obj-filename":"prismball.obj" },
+    "BlitzBall":{ "obj-filename":"blitzball.obj" },
+    "BowlingBall":{ "obj-filename":"bowlingball.obj" },
+    "SpikeBall":{ "obj-filename":"spikeball.obj" },
+    "HappyBall":{ "obj-filename":"faceball.obj" },
+}
+
 class Ball(objpart.ObjPart):
     _default_geom = {'radius':0.2}
+    lethal = True
+    speed = 0.01
+    duration = 6000
+    maxdestroy = 3
+    bounces = True
+    ammo = 1
 
-    def __init__(self,velocity=(0,0),duration=6000,maxdestroy=3,**kw):
-        super(Ball,self).__init__('',**kw)
-        self.velocity = Vec(velocity)
-        self.duration = duration
-        self.maxdestroy = maxdestroy
+    def __init__(self,name='',direction=None,**kw):
+        super(Ball,self).__init__(name,**kw)
+        if direction:
+            self.velocity = Vec(direction).normalise() * self.speed
+        else:
+            self.velocity = Vec(0,0,0)
 
     def step(self,ms):
-        self.duration -= ms
+        self.duration = self.duration - ms
         if self.duration < 0:
             self._expired = True
 
+class BlitzBall(Ball):
+    _default_geom = {'radius':0.2}
+    duration = 1000
+    speed = 0.02
+    ammo = 5
+    
+class BowlingBall(Ball):
+    _default_geom = {'radius':0.4}
+    speed = 0.005
+    duration = 10000
+    maxdestroy = 8
+    ammo = 3
+
+class HappyBall(Ball):
+    _default_geom = {'radius':0.2}
+    lethal = False
+    maxdestroy = float('inf')
+    duration = float('inf')
+    ammo = 1
+
+class SpikeBall(Ball):
+    _default_geom = {'radius':0.2}
+    maxdestroy = 6
+    bounces = False
+    duration = 8000
+    ammo = 4
 
 class ScreenFrame(viewpoint.OrthoView):
     def __init__(self,name="frame",contents=(),**kw):

@@ -8,6 +8,7 @@
   "exit": (col,row),
   "monsters": { (col,row): monster_code },
   "sound": sfx_name,
+  "powerups": { (col,row): ball_code }
  }
 
  Cell code
@@ -16,9 +17,15 @@
  'Hxxx' : A hexagon that can be destroyed. xxx is the colour. 
  '^','<','>','v','#': Various kinds of indestructible wall.
 
+
  Monster Code
  ------------
  Monster class name
+
+
+ Ball Code
+ ----------
+ Ball class name
 
 """
 import os
@@ -37,6 +44,7 @@ class Level:
         self.exit = (8,8)
         self.sound = None
         self.monsters = {}
+        self.powerups = {}
         if leveldict:
             self.__dict__.update(copy.deepcopy(leveldict))
         # sanity check
@@ -54,7 +62,7 @@ class Level:
         d = dict(name=self.name, story=self.story,
                  start=self.start, exit=self.exit,
                  hexes=self.hexes, monsters=self.monsters,
-                 sound=self.sound)
+                 sound=self.sound, powerups=self.powerups)
         with open(os.path.join("data",fname),"wb") as f:
             pickle.dump(d,f,-1)
 
@@ -64,7 +72,7 @@ class Level:
     def obstacles_near(self,x,y):
         return [(hc,hr,self.hexes[hc,hr])
                 for hc,hr in collision.nearest_neighbours(x,y,2)
-                if self.hexes.get((hc,hr)," ") not in " SX"]
+                if self.hexes.get((hc,hr)," ") not in " SXOP"]
 
     def destroy(self,hc,hr):
         """Destroy the hexagon at hc,hr.
@@ -74,6 +82,16 @@ class Level:
             return False
         self.hexes[hc,hr] = " "
         return c
+
+    def collect(self,hc,hr):
+        """Collect powerup at hc,hr
+        Return None if nothing there"""
+        p = self.powerups.get((hc,hr))
+        if p:
+            self.hexes[hc,hr] = " "
+            del self.powerups[hc,hr]
+        return p
+            
 
         
 def load_level(fname):
