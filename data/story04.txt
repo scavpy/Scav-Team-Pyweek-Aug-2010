@@ -1,2 +1,4 @@
 Squashies are large toxic blobs of smelly goo. They are slower than most monsters but every bit as deadly.
 The good news is, their soft outer membrane is vulnerable to attack, so a ball will kill them.
+
+If you collect a power-up, you can use the other mouse button to fire special balls.
