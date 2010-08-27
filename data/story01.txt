@@ -1,2 +1,2 @@
-Make your way to the exit (marked with an X).
+Make your way to the exit (X).
 A is left, D is right, W up, S down.
