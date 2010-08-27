@@ -112,3 +112,6 @@ User Stories
 27. There will be a blitzball that will go very fast in a straight line and
     deal 99,999 damage to the first hexagon it hits. Short lived ball.
     status: done
+
+28. There will be metallic hexagons that are worth more points.
+    (Threads) branch: metals, status: done
