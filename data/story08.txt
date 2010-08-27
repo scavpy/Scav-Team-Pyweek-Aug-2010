@@ -1,0 +1,3 @@
+Bowling balls are slower than your normal balls, and can destroy more
+hexagons.
+You'll probably find circumstances where a slower ball is more useful.

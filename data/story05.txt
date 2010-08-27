@@ -1,3 +1,2 @@
-The Wanderers are mysterious creatures. Nobody knows what they eat.
-
-Probably you.
+If you collect a powerup, you will be able to fire special balls with mouse button 3.
+Ammo is limited, so use them carefully.

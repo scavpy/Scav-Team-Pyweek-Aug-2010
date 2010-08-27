@@ -1,5 +1,3 @@
-There are many kinds of monsters in this cave.
-Shuttlers are the stupidest. They run back and forth endlessly for no apparent reason.
-They won't chase you, but they will certainly kill you if you get too close.
-
-Oh, and by the way, balls won't harm them.
+Use mouse button 1 to fire balls and dig your way to the exit.
+Click where you want the ball to go.
+Be careful of rebounds. 

@@ -1,4 +1,5 @@
-Squashies are large toxic blobs of smelly goo. They are slower than most monsters but every bit as deadly.
-The good news is, their soft outer membrane is vulnerable to attack, so a ball will kill them.
+There are many kinds of monsters in this cave.
+Shuttlers are the stupidest. They run back and forth endlessly for no apparent reason.
+They won't chase you, but they will certainly kill you if you get too close.
 
-If you collect a power-up, you can use the other mouse button to fire special balls.
+Oh, and by the way, balls won't harm them.
