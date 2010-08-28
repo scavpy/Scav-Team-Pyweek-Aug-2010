@@ -182,9 +182,10 @@ class Mimic(Hunter):
 
 class Balrog(Hunter):
     _default_geom = {"radius":0.4}
-    speed = 0.6
+    speed = 0.5
     """ Like a Hunter, but on collision with a wall,
-    pick a random direction"""
+    if the direction is facing roughly towards the
+    player, head directly towards the player """
 
     def __init__(self,name='',**kw):
         super(Balrog,self).__init__(name,**kw)
@@ -207,14 +208,14 @@ class Balrog(Hunter):
             sounds.play("bellow")
         else:
             r = self.velocity.length()
-            if r < 0.001 or r > 0.04:
-                r = 0.01
-            r *= random.gauss(1.0,0.05)
-            self.angle = random.random() * 360
-            a = radians(self.angle)
-            self.velocity = Vec(cos(a),sin(a)) * r
-            if random.random() < 0.2:
-                sounds.play("rumble")
+            to_player = Vec(self.player.pos) - self.pos
+            if to_player.dot(direction) > 0:
+                # facing towards player...
+                direction = to_player.normalise() * r
+                if random.random < 0.2:
+                    sounds.play("rumble")
+            self.pos = where
+            self.turn_to(direction)
 
     def step(self,ms):
         super(Balrog,self).step(ms)
@@ -259,7 +260,7 @@ MonsterStyles = {
                          "2":["Step1"],
                          "3":["Step0"],
                          "4":["Step2"]},
-               "rate":250},
+               "rate":300},
     "Shuttler": {"obj-filename":"crab.obj",
                  "mtl-override-pieces":["Body"],
                  "frames":{"1":["Body","LPincer","RPincer","LFlipper","RFlipper","Legs1"],

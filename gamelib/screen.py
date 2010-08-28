@@ -232,6 +232,9 @@ class GameScreen(Screen):
             m = M("{0}{1}".format(classname,count),
                   velocity=vel,
                   geom=dict(pos=pos,angle=0))
+            if classname == "Balrog":
+                # The Balrog knows where you are.
+                m.player = self.player
             count += 1
             ms.append(m)
         return ms
@@ -267,6 +270,7 @@ class GameScreen(Screen):
 
     def add_ball(self,direction,Kind=Ball):
         ball = Kind(direction=direction)
+        ball.debug_my_next_collision = True
         r = ball.getgeom("radius")
         player = self.player
         pr = player.getgeom('radius',0.49)
@@ -403,9 +407,13 @@ class GameScreen(Screen):
             r = ball.getgeom('radius',0.2)
             obstacles = self.level.obstacles_near(bx,by)
             for hc,hr,cell in obstacles:
-                P = collision.collides(hc,hr,pos,r,v,collision.COLLIDE_REBOUND)
+                P = collision.collides(hc,hr,pos,r,v,collision.COLLIDE_REBOUND,
+                                       debug=ball.debug_my_next_collision)
                 if P:
                     newpos, bv_times_ms = P
+                    if ball.debug_my_next_collision:
+                        ball.debug_my_next_collision = False
+                        print "Reflected to",newpos,"new velocity=",bv_times_ms
                     vel = bv_times_ms * (1/ms)
                     if ball.maxdestroy > 0 and not dying:
                         points = self.hexfield.destroy(hc,hr)
@@ -563,7 +571,10 @@ class TitleScreen(Screen):
     def pick(self,label):
         name = label.target._name
         if name == "Start":
-            self.exit_to(GameScreen)
+            lev = main.options.test_level
+            if lev is None:
+                lev = 1
+            self.exit_to(GameScreen,levelnum=lev)
         elif name == "Quit":
             self.exit_to(None)
 
