@@ -605,7 +605,9 @@ class VictoryScreen(Screen):
     victory_text = """After such a terrible ordeal, you creep out
 into the sunlight, and make your weary way
 home, hoping never again to see another ball
-or hexagon in your life..."""
+or hexagon in your life...
+
+Or you could hit F3 at the title screen. Enjoy."""
     def __init__(self,score,**kw):
         self.score = score
         super(VictoryScreen,self).__init__(**kw)
