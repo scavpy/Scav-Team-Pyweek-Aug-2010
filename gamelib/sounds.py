@@ -29,6 +29,7 @@ sound_files = {
     "munch":"munching.ogg",
     "bellow":"foghorn.ogg",
     "rumble":"rumble.ogg",
+    "tinkle":"tinkle.ogg",
 }
 
 sounds = {}

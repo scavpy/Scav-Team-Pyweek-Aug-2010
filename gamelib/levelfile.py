@@ -120,7 +120,10 @@ class Level:
         if c in ["Cu","Ag","Au","Pt"]:
             s = "ring"
         elif c.startswith("H"):
-            s = "crunch"
+            if len(c) == 5 and c[4] < "f":
+                s = "tinkle"
+            else:
+                s = "crunch"
         if not points:
             return False
         self.hexes[hc,hr] = " "
