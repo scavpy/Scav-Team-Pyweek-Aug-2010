@@ -29,6 +29,7 @@ def main():
         help="Maximum fps [ %default ]")
     add("--time",default=False,action="store_true",
         help="Show timings (inluding actual fps)")
+    add("--test-level",default=None,type="int")
     global options
     options,args = op.parse_args()
     pyglet.clock.set_fps_limit(options.fps)

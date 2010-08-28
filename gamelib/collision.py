@@ -38,6 +38,8 @@
 
 from tdgl.vec import Vec
 
+from math import sin,cos,acos,asin
+
 R3 = 3.0**0.5
 Sin60 = R3*0.5
 
@@ -103,7 +105,7 @@ COLLIDE_CIRCLE = 1
 COLLIDE_POSITION = 2
 COLLIDE_REBOUND = 3
  
-def collides(hcol,hrow,C,r,v=Vec(0,0),detail=COLLIDE_BBOX):
+def collides(hcol,hrow,C,r,v=Vec(0,0),detail=COLLIDE_BBOX,debug=False):
     """ Collision test:
     hcol,hrow : hexagon grid coordinates
     C : circle centre
@@ -117,7 +119,7 @@ def collides(hcol,hrow,C,r,v=Vec(0,0),detail=COLLIDE_BBOX):
     C1 = C0 + v
     left,right = C1.x - r, C1.x + r
     top,bot = C1.y + r, C1.y - r
-    bbtest = left < 1 and right > -1 and bot < Sin60 and top > -Sin60
+    bbtest = left < 1 and right > -1 and bot < 1 and top > -1
     if not bbtest:
         return False
     if detail == COLLIDE_BBOX:
@@ -129,29 +131,29 @@ def collides(hcol,hrow,C,r,v=Vec(0,0),detail=COLLIDE_BBOX):
     if detail == COLLIDE_CIRCLE:
         return True
 
-    # Push the circle away to the edge of the bounding
-    # circle of the hexagon.
+    # Push the circle away past the edge of the bounding
+    # circle of the hexagon
     n = C1.normalise()
     C2 = n * (1+r)
+    
 
     if detail == COLLIDE_POSITION:
         return C2 + H
 
     # Find hexagon normal nearest to the direction of the circle
     nx,ny,_ = n
-    dots = sorted((abs(1.0 - v.dot(n)),i)
+    dots = sorted((v.dot(n),i)
                    for (i,v) in enumerate(H_NORMAL))
-    _,i = dots[0]
+    _,i = dots[-1]
     # Real normal at hexagon side...
     n = H_NORMAL[i]
-
     # Calculate bounce vector...
 
     # Portion of intended distance still to travel
     speed = v.length()
     v1 = C2 - C0
     remainder = max(0.01,speed - v1.length())
-    # Midpoint M is above the collision point 
+    # Midpoint M is above the collision point
     M = C2 - v1.proj(n)
     # C3 is opposite C0 through the midpoint M
     C3 = C0 + (M - C0)*2
@@ -159,5 +161,4 @@ def collides(hcol,hrow,C,r,v=Vec(0,0),detail=COLLIDE_BBOX):
     v2 = (C3 - C2).normalise()
     C2 += v2 * remainder
     return C2 + H, v2 * speed
-    
-                  
+

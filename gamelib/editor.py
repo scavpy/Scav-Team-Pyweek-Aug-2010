@@ -58,7 +58,7 @@ class EditorWindow(pyglet.window.Window):
         if options.no_music:
             self.level.music = "No Music"
         self.cellcode = "#"
-        self.rgb = [1,1,1]
+        self.rgba = [1,1,1,1]
         stylesheet.load(monsters.MonsterStyles)
         stylesheet.load(graphics.BallStyles)
         self.get_monster_list()
@@ -115,6 +115,9 @@ class EditorWindow(pyglet.window.Window):
         tools.append(
             ColourBar("blue",2,
                       geom=dict(scale=10,pos=(40,10,0))))
+        tools.append(
+            ColourBar("alpha",3,intensity=15,
+                      geom=dict(scale=10,pos=(55,10,0))))
 
         tools.append(
             panel.LabelPanel("cellcode",
@@ -122,6 +125,10 @@ class EditorWindow(pyglet.window.Window):
                              style={"font_size":10},
                              geom={"pos":(50,250,0)}))
                              
+        tools.append(
+            MiniBorder("border",bg=self.level.bg,
+                       bd=self.level.bd,fg=self.level.fg,
+                       geom=dict(scale=40,pos=(10,200,0))))
         self.parts = part.Group("parts",[view,tools])
         for coords,mname in self.level.monsters.items():
             self.add_thing_to_view(coords,monsters,mname)
@@ -138,7 +145,7 @@ class EditorWindow(pyglet.window.Window):
         label.prepare()
 
     def set_hex_colour(self):
-        hexdigits = "".join(hex(c)[-1] for c in self.rgb)
+        hexdigits = "".join(hex(c)[-1] for c in self.rgba)
         self.set_cell_code("H" + hexdigits)
 
     def on_key_press(self,sym,mods):
@@ -244,10 +251,22 @@ class EditorWindow(pyglet.window.Window):
 
     def pick(self,label):
         ob = label.target
-        if ob._name in ["red","green","blue"]:
+        if ob._name in ["red","green","blue","alpha"]:
             ob.intensity = label.intensity
-            self.rgb[ob.component] = label.intensity
+            self.rgba[ob.component] = label.intensity
             self.set_hex_colour()
+        elif ob._name == "border":
+            zone = label.zone
+            colour = graphics.cellcolour(self.cellcode)
+            if zone == "bd":
+                ob.bd = colour
+                self.level.bd = colour
+            elif zone == "bg":
+                ob.bg = colour
+                self.level.bg = colour
+            elif zone == "fg":
+                ob.fg = colour
+                self.level.fg = colour
 
     def on_draw(self):
         tdgl_draw_parts(self.parts)
@@ -260,9 +279,9 @@ class EditorWindow(pyglet.window.Window):
 
 class ColourBar(part.ScalePart):
 
-    def __init__(self,name,component=0,**kw):
+    def __init__(self,name,component=0,intensity=1,**kw):
         super(ColourBar,self).__init__(name,**kw)
-        self.intensity = 1
+        self.intensity = intensity
         self.component = component
         self._has_transparent = (component == 3)
 
@@ -274,7 +293,8 @@ class ColourBar(part.ScalePart):
     def render(self,mode):
         """Render as a colour bar with a white border"""
         v = glVertex2f
-        colour = [0,0,0,1]
+        c = (self.component == 3)
+        colour = [c,c,c,1]
         for i in range(16):
             if mode == 'PICK':
                 picking.label(self,intensity=i)
@@ -301,6 +321,41 @@ class ColourBar(part.ScalePart):
                 v(0.9,i+0.1)
                 v(0.9,i+0.9)
                 v(0.1,i+0.9)
+
+class MiniBorder(part.ScalePart):
+    def __init__(self,name='border',bd=(1,0,0,1),bg=(0.5,0,0,1),fg=(1,1,1,1),**kw):
+        super(MiniBorder,self).__init__(name,**kw)
+        self.bd = bd
+        self.bg = bg
+        self.fg = fg
+
+    def render(self,mode):
+        glColor4f(*self.bd)
+        if mode == 'PICK':
+            picking.label(self,zone="bd")
+        glLineWidth(5)
+        with gl_begin(GL_LINE_LOOP):
+            glVertex2f(0,0)
+            glVertex2f(1,0)
+            glVertex2f(1,1)
+            glVertex2f(0,1)
+        glColor4f(*self.bg)
+        if mode == 'PICK':
+            picking.label(self,zone="bg")
+        glRectf(0.1,0.1,0.9,0.9)
+        glColor4f(*self.fg)
+        if mode == 'PICK':
+            picking.label(self,zone="fg")
+        glLineWidth(5)
+        with gl_begin(GL_LINES):
+            glVertex2f(0.2,-0.1)
+            glVertex2f(0.4,-0.3)
+            glVertex2f(0.2,-0.3)
+            glVertex2f(0.4,-0.1)
+        if mode == 'PICK':
+            picking.nolabel()
+
+        
 
 if __name__ == '__main__':
     from optparse import OptionParser

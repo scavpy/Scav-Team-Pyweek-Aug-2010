@@ -19,7 +19,7 @@ import collision
 import levelfile
 import monsters
 import main # for options
-from graphics import ClockPart, Ball, Player, ScreenFrame, StoryPanel
+from graphics import ClockPart, Ball, Player, ScreenFrame, StoryPanel, ScreenBorder
 from graphics import BlitzBall, BowlingBall, SpikeBall, HappyBall
 import sounds
 
@@ -27,7 +27,8 @@ class Screen(part.Group):
     _next = None
     _screen_styles = {
         "LabelPanel.button": {
-            "bg":(0,0.8,0.5,1), "fg":(0,0,0,1),
+            "bg":(1,1,1,1), "fg":(0,0,0,1),
+            "texture":"data/models/gold.png",
             "font_size":32,
             "border":2, "bd":(1,1,1,1),
             "bg_margin":18,"bg_radius":42, "bg_round:":0,
@@ -109,9 +110,11 @@ class GameScreen(Screen):
     music = "gameplay"
     _screen_styles = {
         "LabelPanel.onframe": {
-            "bg":(0.6,0.5,0.1,1), "fg":(1,1,1,1),
+            "bg":(1,1,1,1), "fg":(1,1,1,1),
+            "texture":"data/models/copper.png",
+            "texture_repeat":0.2,
             "font_size":14, "font":"Courier",
-            "border":2, "bd":(1,1,1,1),
+            "border":3, "bd":(0.4,0.2,0.2,1),
             "bg_margin":10,"bg_radius":20, "bg_round:":0,
             "bd_margin":10,"bd_radius":20, "bd_round:":0,
             },
@@ -133,6 +136,8 @@ class GameScreen(Screen):
         stylesheet.load(graphics.BallStyles)
         if level.music:
             self.music = level.music
+        self.special_ammo = ammo
+        self.special_ball = special
         super(GameScreen,self).__init__(name,**kw)
         self.set_mode("story" if self.story_page is not None
                       else "playing")
@@ -158,8 +163,6 @@ class GameScreen(Screen):
         glGetIntegerv(GL_VIEWPORT, vport)
         self.vport = tuple(vport)
         self.reload = 0
-        self.special_ammo = ammo
-        self.special_ball = special
         sounds.play(self.level.sound)
             
     def __del__(self):
@@ -174,13 +177,18 @@ class GameScreen(Screen):
 
     def build_parts(self,**kw):
         level = self.level
-        ov = ScreenFrame()
-        ov.add_label(
-            "level_indicator",
-            "{0} ({1})".format(level.name,self.levelnum))
-        ov.add_label("score",
-                     "{0:05}".format(self.score),
-                     top=False,left=False)
+        if self.special_ball:
+            ammo_name = self.special_ball.__name__
+        else:
+            ammo_name = None
+        border = ScreenBorder(
+            "hud",
+            title=level.name,
+            score=self.score,
+            ammo=self.special_ammo,
+            ammo_name=ammo_name,
+            style=dict(fg=level.fg,bg=level.bg,bd=level.bd))
+        ov = ScreenFrame("frame", [border])
         with ov.compile_style():
             glClearColor(0,0,0,0)
             glDisable(GL_LIGHTING)
@@ -232,6 +240,9 @@ class GameScreen(Screen):
             m = M("{0}{1}".format(classname,count),
                   velocity=vel,
                   geom=dict(pos=pos,angle=0))
+            if classname == "Balrog":
+                # The Balrog knows where you are.
+                m.player = self.player
             count += 1
             ms.append(m)
         return ms
@@ -263,7 +274,7 @@ class GameScreen(Screen):
 
     def inc_score(self,points):
         self.score += points
-        self["frame"].update_label("score","{0:05}",self.score)
+        self["hud"].set_score(self.score)
 
     def add_ball(self,direction,Kind=Ball):
         ball = Kind(direction=direction)
@@ -428,7 +439,7 @@ class GameScreen(Screen):
         player = self.player
         dying = (self.mode == "dying")
         pr = player.getgeom('radius',0.49)
-        ppos = player.pos
+        ppos = Vec(player.pos)
         for mon in self["monsters"].contents:
             v = mon.velocity * ms
             mx,my,mz = pos = mon.pos
@@ -563,7 +574,10 @@ class TitleScreen(Screen):
     def pick(self,label):
         name = label.target._name
         if name == "Start":
-            self.exit_to(GameScreen)
+            lev = main.options.test_level
+            if lev is None:
+                lev = 1
+            self.exit_to(GameScreen,levelnum=lev)
         elif name == "Quit":
             self.exit_to(None)
 
