@@ -1,3 +1,3 @@
-Use mouse button 1 to fire balls and dig your way to the exit.
-Click where you want the ball to go.
-Be careful of rebounds. 
+Use the left mouse button to fire balls. They will move towards
+Where you click. Use them to shatter hexagons and get to the exit.
+Be careful of rebounds though.

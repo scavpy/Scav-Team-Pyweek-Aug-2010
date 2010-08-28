@@ -67,10 +67,6 @@ class Level:
         self.fg = (1,1,1,1)
         if leveldict:
             self.__dict__.update(copy.deepcopy(leveldict))
-        # sanity check
-        for coords in list(self.monsters):
-            if coords in self.hexes:
-                del self.hexes[coords]
         self.hexes[self.start] = "S"
         self.hexes[self.exit] = "X"
 

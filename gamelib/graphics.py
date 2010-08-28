@@ -191,6 +191,7 @@ BallStyles = {
     "BowlingBall":{ "obj-filename":"bowlingball.obj" },
     "SpikeBall":{ "obj-filename":"spikeball.obj" },
     "HappyBall":{ "obj-filename":"faceball.obj" },
+    "DeathBall":{ "obj-filename":"deathball.obj" }
 }
 
 class Ball(objpart.ObjPart):
@@ -217,7 +218,7 @@ class Ball(objpart.ObjPart):
 class BlitzBall(Ball):
     _default_geom = {'radius':0.2}
     duration = 1000
-    speed = 0.02
+    speed = 0.018
     ammo = 5
     
 class BowlingBall(Ball):
@@ -236,10 +237,17 @@ class HappyBall(Ball):
 
 class SpikeBall(Ball):
     _default_geom = {'radius':0.2}
-    maxdestroy = 6
+    maxdestroy = 10
     bounces = False
     duration = 8000
     ammo = 4
+
+class DeathBall(Ball):
+    _default_geom = {'radius':0.2}
+    maxdestroy = 13
+    duration = 10000
+    ammo = 3
+    speed = 0.016
 
 class ScreenFrame(viewpoint.OrthoView):
     def __init__(self,name="frame",contents=(),**kw):
