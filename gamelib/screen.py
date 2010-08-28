@@ -287,8 +287,6 @@ class GameScreen(Screen):
              
     def click(self,x,y,button,mods):
         """ Click to fire """
-        if button not in (1,4):
-            return
         if self.mode == "dying":
             return
         if self.mode == "story":
@@ -296,7 +294,7 @@ class GameScreen(Screen):
             return
         if self.reload:
             return
-        if button == 4:
+        if button & 6:
             if self.special_ammo <= 0:
                 return
             self.special_ammo -= 1
@@ -308,7 +306,7 @@ class GameScreen(Screen):
         else:
             vx,vy,vw,vh = self.vport
             v = Vec(x - (vx + vw//2), y - (vy + vh//2))
-        kind = (self.special_ball if button == 4 else Ball)
+        kind = (self.special_ball if button & 6 else Ball)
         self.add_ball(direction=v,Kind=kind)
         self.reload = 300
 
@@ -443,13 +441,15 @@ class GameScreen(Screen):
                             self.inc_score(points[0])
                             if not ball.bounces:
                                 vel = ball.velocity
+                            else:
+                                vel *= 0.95
                     ball.velocity = vel
                     break
             ball.pos = newpos
             if (ball.lethal
                 and not dying 
                 and (ball.pos - ppos).length() < (r + pr)):
-                self.player_die("ball trauma")
+                self.player_die("{0} trauma".format(ball.__class__.__name__.lower()))
 
     def step_monsters(self,ms):
         player = self.player
