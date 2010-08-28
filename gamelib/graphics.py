@@ -285,6 +285,7 @@ class ScreenBorder(part.Part):
         self.title = title
         self.ammo_name = ammo_name
         self.score = score
+        self.target_score = score
 
     def prepare(self):
         self.prepare_title()
@@ -293,8 +294,12 @@ class ScreenBorder(part.Part):
         self.prepare_frame()
 
     def set_score(self,score):
-        self.score = score
-        self.prepare_score()
+        self.target_score = score
+
+    def step(self,ms):
+        if self.target_score > self.score:
+            self.score = min(self.score + int(ms)//2, self.target_score)
+            self.prepare_score()
 
     def set_title(self,title):
         self.title = title
@@ -321,10 +326,14 @@ class ScreenBorder(part.Part):
         getstyle = self.getstyle
         font = getstyle("font")
         font_size = getstyle("font_size")
+        if self.score < self.target_score:
+            color=[100,255,100,255]
+        else:
+            color=[int(c*255) for c in getstyle("fg")]
         self.score_label = pyglet.text.Label(
             text="{0:06}".format(self.score),
             font_name=font, font_size=font_size,
-            color=[int(c*255) for c in getstyle("fg")],
+            color=color,
             anchor_x='left',anchor_y='top')
 
     def prepare_frame(self):
