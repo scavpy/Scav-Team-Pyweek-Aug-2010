@@ -2,6 +2,7 @@
    Graphics for the Hextrap game
 """
 import pickle
+import pyglet
 from tdgl.gl import *
 from tdgl import part, objpart, viewpoint, panel
 from tdgl.vec import Vec
@@ -260,3 +261,112 @@ class ScreenFrame(viewpoint.OrthoView):
         lab = self[name]
         lab.text = text.format(*args)
         lab.prepare()
+
+class ScreenBorder(part.Part):
+    _default_geom={"width":1024,"height":768}
+    _default_style={"texture":"copper.png",
+                    "border":3, "bd":(0.4,0.2,0.2,1),
+                    "margin":8,"fg":(1,1,1,1),
+                    "texture_repeat":0.2,
+                    "font_size":14, "font":"Courier"}
+    _style_attributes = tuple(_default_style.keys())
+    
+    def __init__(self,name,title="",score=0,ammo=0,ammo_name=None,**kw):
+        super(ScreenBorder,self).__init__(name,**kw)
+        self.frame_dl = glGenLists(1)
+        self.ammo_obj = None
+        self.title_label = None
+        self.score_label = None
+        self.ammo = ammo
+        self.title = title
+        self.ammo_name = ammo_name
+        self.score = score
+
+    def prepare(self):
+        self.prepare_title()
+        self.prepare_score()
+        self.prepare_ammo()
+        self.prepare_frame()
+
+    def set_score(self,score):
+        self.score = score
+        self.prepare_score()
+
+    def set_title(self,title):
+        self.title = title
+        self.prepare_title()
+        self.prepare_frame()
+
+    def set_ammo(self,ammo,ammo_name):
+        self.ammo = ammo
+        self.ammo_name = ammo_name
+        self.prepare_ammo()
+        self.prepare_frame()
+
+    def prepare_title(self):
+        getstyle = self.getstyle
+        font = getstyle("font")
+        font_size = getstyle("font_size")
+        self.title_label = pyglet.text.Label(
+            text=self.title,
+            font_name=font, font_size=font_size,
+            color=[int(c*255) for c in getstyle("fg")],
+            anchor_x='left',anchor_y='bottom')
+
+    def prepare_score(self):
+        getstyle = self.getstyle
+        font = getstyle("font")
+        font_size = getstyle("font_size")
+        self.score_label = pyglet.text.Label(
+            text="{0:06}".format(self.score),
+            font_name=font, font_size=font_size,
+            color=[int(c*255) for c in getstyle("fg")],
+            anchor_x='left',anchor_y='top')
+
+    def prepare_frame(self):
+        getstyle = self.getstyle
+        m = getstyle("margin")
+        w = self.getgeom("width")
+        h = self.getgeom("height")
+        tw = self.title_label.content_width
+        th = self.title_label.content_height
+        sw = self.score_label.content_width
+        sh = self.score_label.content_height
+        title_poly = [
+            (0,0), (tw+th,0), (tw+th,m), (tw,th+m), (0, th+m)]
+        score_poly = [
+            (0,h), (0,h-sh-m), (sw,h-sh-m), (sw+sh, h-m), (sw+sh, h)]
+        inner_line = [
+            (m,th+m),(tw,th+m),(tw+th,m),(w-m,m),(w-m,h-m),
+            (sw+sh,h-m), (sw,h-sh-m), (m, h-sh-m) ]
+        with gl_compile(self.frame_dl):
+            glColor4f(0.6,0.3,0.3,1)
+            for p in [title_poly,score_poly]:
+                with gl_begin(GL_POLYGON):
+                    for (x,y) in p:
+                        glVertex2f(x,y)
+            glRectf(0,0,m,h)
+            glRectf(w-m,0,w,h)
+            glRectf(0,0,w,m)
+            glRectf(0,h-m,w,h)
+            glLineWidth(getstyle("border"))
+            glColor4f(*getstyle("bd"))
+            with gl_begin(GL_LINE_LOOP):
+                for x,y in inner_line:
+                    glVertex2f(x,y)
+        
+    def prepare_ammo(self):
+        pass
+
+    def render(self,mode):
+        if mode == "PICK":
+            return
+        h = self.getgeom("height")
+        m = self.getstyle("margin")
+        glCallList(self.frame_dl)
+        glPushMatrix()
+        glTranslatef(m//2,m//2,0.05)
+        self.title_label.draw()
+        glTranslatef(0,h-m,0)
+        self.score_label.draw()
+        glPopMatrix()

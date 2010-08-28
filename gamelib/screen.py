@@ -19,7 +19,7 @@ import collision
 import levelfile
 import monsters
 import main # for options
-from graphics import ClockPart, Ball, Player, ScreenFrame, StoryPanel
+from graphics import ClockPart, Ball, Player, ScreenFrame, StoryPanel, ScreenBorder
 from graphics import BlitzBall, BowlingBall, SpikeBall, HappyBall
 import sounds
 
@@ -136,6 +136,8 @@ class GameScreen(Screen):
         stylesheet.load(graphics.BallStyles)
         if level.music:
             self.music = level.music
+        self.special_ammo = ammo
+        self.special_ball = special
         super(GameScreen,self).__init__(name,**kw)
         self.set_mode("story" if self.story_page is not None
                       else "playing")
@@ -161,8 +163,6 @@ class GameScreen(Screen):
         glGetIntegerv(GL_VIEWPORT, vport)
         self.vport = tuple(vport)
         self.reload = 0
-        self.special_ammo = ammo
-        self.special_ball = special
         sounds.play(self.level.sound)
             
     def __del__(self):
@@ -177,13 +177,16 @@ class GameScreen(Screen):
 
     def build_parts(self,**kw):
         level = self.level
-        ov = ScreenFrame()
-        ov.add_label(
-            "level_indicator",
-            "{0} ({1})".format(level.name,self.levelnum))
-        ov.add_label("score",
-                     "{0:06}".format(self.score),
-                     top=False,left=False)
+        if self.special_ball:
+            ammo_name = self.special_ball.__name__
+        else:
+            ammo_name = None
+        border = ScreenBorder("hud",
+                              title=level.name,
+                              score=self.score,
+                              ammo=self.special_ammo,
+                              ammo_name=ammo_name)
+        ov = ScreenFrame("frame", [border])
         with ov.compile_style():
             glClearColor(0,0,0,0)
             glDisable(GL_LIGHTING)
@@ -269,7 +272,7 @@ class GameScreen(Screen):
 
     def inc_score(self,points):
         self.score += points
-        self["frame"].update_label("score","{0:06}",self.score)
+        self["hud"].set_score(self.score)
 
     def add_ball(self,direction,Kind=Ball):
         ball = Kind(direction=direction)
