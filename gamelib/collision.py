@@ -133,11 +133,7 @@ def collides(hcol,hrow,C,r,v=Vec(0,0),detail=COLLIDE_BBOX,debug=False):
 
     # Push the circle away past the edge of the bounding
     # circle of the hexagon
-    d = C0.length() - 1
-    u = C0.normalise() * (-d)
-    u2 = u.proj(v)
-    P = C0 + u2
-    n = P.normalise()
+    n = C1.normalise()
     C2 = n * (1+r)
     
 

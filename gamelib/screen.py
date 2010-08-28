@@ -27,7 +27,8 @@ class Screen(part.Group):
     _next = None
     _screen_styles = {
         "LabelPanel.button": {
-            "bg":(0,0.8,0.5,1), "fg":(0,0,0,1),
+            "bg":(1,1,1,1), "fg":(0,0,0,1),
+            "texture":"data/models/gold.png",
             "font_size":32,
             "border":2, "bd":(1,1,1,1),
             "bg_margin":18,"bg_radius":42, "bg_round:":0,
@@ -109,9 +110,11 @@ class GameScreen(Screen):
     music = "gameplay"
     _screen_styles = {
         "LabelPanel.onframe": {
-            "bg":(0.6,0.5,0.1,1), "fg":(1,1,1,1),
+            "bg":(1,1,1,1), "fg":(1,1,1,1),
+            "texture":"data/models/copper.png",
+            "texture_repeat":0.2,
             "font_size":14, "font":"Courier",
-            "border":2, "bd":(1,1,1,1),
+            "border":3, "bd":(0.4,0.2,0.2,1),
             "bg_margin":10,"bg_radius":20, "bg_round:":0,
             "bd_margin":10,"bd_radius":20, "bd_round:":0,
             },
@@ -179,7 +182,7 @@ class GameScreen(Screen):
             "level_indicator",
             "{0} ({1})".format(level.name,self.levelnum))
         ov.add_label("score",
-                     "{0:05}".format(self.score),
+                     "{0:06}".format(self.score),
                      top=False,left=False)
         with ov.compile_style():
             glClearColor(0,0,0,0)
@@ -266,11 +269,10 @@ class GameScreen(Screen):
 
     def inc_score(self,points):
         self.score += points
-        self["frame"].update_label("score","{0:05}",self.score)
+        self["frame"].update_label("score","{0:06}",self.score)
 
     def add_ball(self,direction,Kind=Ball):
         ball = Kind(direction=direction)
-        ball.debug_my_next_collision = True
         r = ball.getgeom("radius")
         player = self.player
         pr = player.getgeom('radius',0.49)
@@ -407,13 +409,9 @@ class GameScreen(Screen):
             r = ball.getgeom('radius',0.2)
             obstacles = self.level.obstacles_near(bx,by)
             for hc,hr,cell in obstacles:
-                P = collision.collides(hc,hr,pos,r,v,collision.COLLIDE_REBOUND,
-                                       debug=ball.debug_my_next_collision)
+                P = collision.collides(hc,hr,pos,r,v,collision.COLLIDE_REBOUND)
                 if P:
                     newpos, bv_times_ms = P
-                    if ball.debug_my_next_collision:
-                        ball.debug_my_next_collision = False
-                        print "Reflected to",newpos,"new velocity=",bv_times_ms
                     vel = bv_times_ms * (1/ms)
                     if ball.maxdestroy > 0 and not dying:
                         points = self.hexfield.destroy(hc,hr)
