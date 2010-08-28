@@ -3,6 +3,7 @@ Screen module.
 
 The game is divided into Screens
 """
+from __future__ import division
 import pickle
 import random
 import pyglet
@@ -339,7 +340,7 @@ class GameScreen(Screen):
             pass # never mind
 
     def step_player(self,ms):
-        ms = min(ms,35) # avoid collision glitches when fps is low
+        ms = min(ms,35.0) # avoid collision glitches when fps is low
         player = self.player
         if self.keysdown:
             if self.first_person:
@@ -418,7 +419,7 @@ class GameScreen(Screen):
                             self["powerups"].remove(b)
 
     def step_balls(self,ms):
-        ms = min(ms,27) # avoid collision glitches when fps is low
+        ms = min(ms,27.0) # avoid collision glitches when fps is low
         player = self.player
         dying = (self.mode == "dying")
         pr = player.getgeom('radius',0.49)
@@ -454,7 +455,7 @@ class GameScreen(Screen):
                 self.player_die("{0} trauma".format(ball.__class__.__name__.lower()))
 
     def step_monsters(self,ms):
-        ms = min(ms,27) # avoid collision glitches when fps is low
+        ms = min(ms,27.0) # avoid collision glitches when fps is low
         player = self.player
         dying = (self.mode == "dying")
         pr = player.getgeom('radius',0.49)
