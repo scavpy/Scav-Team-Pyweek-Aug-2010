@@ -247,7 +247,7 @@ MonsterStyles = {
                         "2":["Body","Legs","Eye","Pincers2"],
                         "3":["Body","Legs","Eye","Pincers3"],
                         "4":["Body","Legs","Eye","Pincers2"]},
-              "rate":100,
+              "rate":50,
               "mimic-filename":"wall.obj"},
     "Squashy": {"obj-filename":"squelchy.obj",
                 "mtl-override-pieces":[],
