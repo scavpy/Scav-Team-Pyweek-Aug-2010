@@ -9,7 +9,10 @@
   "monsters": { (col,row): monster_code },
   "sound": sfx_name,
   "music": music_name,
-  "powerups": { (col,row): ball_code }
+  "powerups": { (col,row): ball_code },
+  "bg":  background colour for screen frame,
+  "bd":  edge colour for screen frame,
+  "fg":  foreground colour for screen frame text,
  }
 
  Cell code
@@ -43,7 +46,9 @@ HEXPOINTS = {
     "Ag":500,
     "Cu":250,
     "H000":150,
+    "H000f":150,
     "Hfff":100,
+    "Hffff":100,
     }
 
 class Level:
@@ -57,6 +62,9 @@ class Level:
         self.music = None
         self.monsters = {}
         self.powerups = {}
+        self.bg = (0.6,0.5,0.2,1)
+        self.bd = (0.3,0.1,0.1,1)
+        self.fg = (1,1,1,1)
         if leveldict:
             self.__dict__.update(copy.deepcopy(leveldict))
         # sanity check
@@ -75,7 +83,7 @@ class Level:
                  start=self.start, exit=self.exit,
                  hexes=self.hexes, monsters=self.monsters,
                  sound=self.sound, powerups=self.powerups,
-                 music=self.music)
+                 music=self.music, bg=self.bg, fg=self.fg, bd=self.bd)
         with open(os.path.join("data",fname),"wb") as f:
             pickle.dump(d,f,-1)
 
@@ -92,12 +100,16 @@ class Level:
         if p:
             return p
         if hex.startswith("H"):
-            h,r,g,b = hex
+            if len(hex) == 4:
+                h,r,g,b = hex
+                a = "f"
+            else:
+                h,r,g,b,a = hex
             if r == g == b:
                 return 5
             elif re.match("H[f0][f0][f0]",hex):
                 return 50
-            elif "f" in hex:
+            elif "f" in (r,g,b):
                 return 20
             else:
                 return 10

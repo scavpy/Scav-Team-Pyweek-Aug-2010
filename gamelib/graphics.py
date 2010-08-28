@@ -40,7 +40,9 @@ def cellcolour(cellcode):
     elif c in "#<>^vO":
         return (0.5,0.5,0.5,1)
     elif c == "H":
-        rgba = [int(x,16) / 15.0 for x in cellcode[1:4]] + [1]
+        rgba = [int(x,16) / 15.0 for x in cellcode[1:]]
+        if len(rgba) == 3:
+            rgba.append(1)
         return tuple(rgba)
     else:
         return (1,1,1,1)
@@ -243,31 +245,11 @@ class ScreenFrame(viewpoint.OrthoView):
     def __init__(self,name="frame",contents=(),**kw):
         super(ScreenFrame,self).__init__(name,contents,**kw)
 
-    def add_label(self,name,text,top=True,left=True,**kw):
-        lab = panel.LabelPanel(
-            name, text=text, 
-            style_classes = ['onframe'])
-        w,h = lab.content_size()
-        x = w // 2 + 16
-        y = h // 2 + 16
-        if top:
-            y = 768 - y
-        if not left:
-            x = 1024 - x
-        lab.pos = (x,y,0.1)
-        self.append(lab)
-
-    def update_label(self,name,text,*args):
-        lab = self[name]
-        lab.text = text.format(*args)
-        lab.prepare()
-
 class ScreenBorder(part.Part):
     _default_geom={"width":1024,"height":768}
-    _default_style={"texture":"copper.png",
-                    "border":3, "bd":(0.4,0.2,0.2,1),
+    _default_style={"border":3, "bd":(0.4,0.2,0.2,1),
+                    "bg":(0.6,0.2,0.2,1),
                     "margin":8,"fg":(1,1,1,1),
-                    "texture_repeat":0.2,
                     "font_size":14, "font":"Courier"}
     _style_attributes = tuple(_default_style.keys())
     
@@ -340,7 +322,7 @@ class ScreenBorder(part.Part):
             (m,th+m),(tw,th+m),(tw+th,m),(w-m,m),(w-m,h-m),
             (sw+sh,h-m), (sw,h-sh-m), (m, h-sh-m) ]
         with gl_compile(self.frame_dl):
-            glColor4f(0.6,0.3,0.3,1)
+            glColor4f(*getstyle("bg"))
             for p in [title_poly,score_poly]:
                 with gl_begin(GL_POLYGON):
                     for (x,y) in p:
@@ -363,6 +345,7 @@ class ScreenBorder(part.Part):
             return
         h = self.getgeom("height")
         m = self.getstyle("margin")
+        glDisable(GL_TEXTURE_2D)
         glCallList(self.frame_dl)
         glPushMatrix()
         glTranslatef(m//2,m//2,0.05)

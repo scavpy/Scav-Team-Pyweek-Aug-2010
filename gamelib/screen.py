@@ -181,11 +181,13 @@ class GameScreen(Screen):
             ammo_name = self.special_ball.__name__
         else:
             ammo_name = None
-        border = ScreenBorder("hud",
-                              title=level.name,
-                              score=self.score,
-                              ammo=self.special_ammo,
-                              ammo_name=ammo_name)
+        border = ScreenBorder(
+            "hud",
+            title=level.name,
+            score=self.score,
+            ammo=self.special_ammo,
+            ammo_name=ammo_name,
+            style=dict(fg=level.fg,bg=level.bg,bd=level.bd))
         ov = ScreenFrame("frame", [border])
         with ov.compile_style():
             glClearColor(0,0,0,0)
@@ -437,7 +439,7 @@ class GameScreen(Screen):
         player = self.player
         dying = (self.mode == "dying")
         pr = player.getgeom('radius',0.49)
-        ppos = player.pos
+        ppos = Vec(player.pos)
         for mon in self["monsters"].contents:
             v = mon.velocity * ms
             mx,my,mz = pos = mon.pos
