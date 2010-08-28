@@ -4,7 +4,7 @@
 import pickle
 import pyglet
 from tdgl.gl import *
-from tdgl import part, objpart, viewpoint, panel
+from tdgl import part, objpart, viewpoint, panel, animator
 from tdgl.vec import Vec
 
 import collision, levelfile
@@ -183,7 +183,20 @@ class ClockPart(part.Part):
 
 class Player(objpart.ObjPart):
     _default_geom = {'radius':0.49}
-    pass
+    def __init__(self,name,**kw):
+        super(Player,self).__init__(name,**kw)
+        self.anim = animator.Mutator(self._geom)
+
+    def step(self,ms):
+        self.anim.step(ms)
+
+    def die(self):
+        self.setstyle("obj-pieces",["Hat"])
+        self.prepare()
+        x,y,z = self.pos
+        self.pos = (x,y,z) # Vec won't work
+        self.anim.change("pos",(x,y,z-1.0),500)
+
 
 BallStyles = {
     "Ball":{ "obj-filename":"prismball.obj" },

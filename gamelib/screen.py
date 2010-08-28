@@ -491,6 +491,7 @@ class GameScreen(Screen):
     def player_die(self,dying_of=""):
         sounds.play("pain")
         self.set_mode("dying")
+        self.player.die()
         self.dying_of = dying_of
         self.dying_time = 3000
         lighting.light_colour(self.light,(0,0,0,0),self.dying_time)
