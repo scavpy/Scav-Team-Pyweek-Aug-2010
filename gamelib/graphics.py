@@ -259,6 +259,7 @@ class ScreenBorder(part.Part):
         self.ammo_obj = None
         self.title_label = None
         self.score_label = None
+        self.ammo_label = None
         self.ammo = ammo
         self.title = title
         self.ammo_name = ammo_name
@@ -314,16 +315,22 @@ class ScreenBorder(part.Part):
         th = self.title_label.content_height
         sw = self.score_label.content_width
         sh = self.score_label.content_height
+        aw = self.ammo_label.content_width
+        ah = self.ammo_label.content_height
+        
         title_poly = [
             (0,0), (tw+th,0), (tw+th,m), (tw,th+m), (0, th+m)]
         score_poly = [
             (0,h), (0,h-sh-m), (sw,h-sh-m), (sw+sh, h-m), (sw+sh, h)]
+        ammo_poly = [
+            (w,h), (w-aw-ah,h), (w-aw-ah,h-m), (w-aw,h-ah-m),(w,h-ah-m)]
         inner_line = [
-            (m,th+m),(tw,th+m),(tw+th,m),(w-m,m),(w-m,h-m),
+            (m,th+m),(tw,th+m),(tw+th,m),(w-m,m),
+            (w-m,h-m-ah),(w-aw, h-m-ah), (w-aw-ah, h-m),
             (sw+sh,h-m), (sw,h-sh-m), (m, h-sh-m) ]
         with gl_compile(self.frame_dl):
             glColor4f(*getstyle("bg"))
-            for p in [title_poly,score_poly]:
+            for p in [title_poly,score_poly,ammo_poly]:
                 with gl_begin(GL_POLYGON):
                     for (x,y) in p:
                         glVertex2f(x,y)
@@ -338,12 +345,24 @@ class ScreenBorder(part.Part):
                     glVertex2f(x,y)
         
     def prepare_ammo(self):
-        pass
+        getstyle = self.getstyle
+        font = getstyle("font")
+        font_size = getstyle("font_size")
+        if self.ammo and self.ammo_name:
+            text = "{0} {1}".format(self.ammo,self.ammo_name)
+        else:
+            text = " "
+        self.ammo_label = pyglet.text.Label(
+            text=text,
+            font_name=font, font_size=font_size,
+            color=[int(c*255) for c in getstyle("fg")],
+            anchor_x='right',anchor_y='top')
 
     def render(self,mode):
         if mode == "PICK":
             return
         h = self.getgeom("height")
+        w = self.getgeom("width")
         m = self.getstyle("margin")
         glDisable(GL_TEXTURE_2D)
         glCallList(self.frame_dl)
@@ -352,4 +371,6 @@ class ScreenBorder(part.Part):
         self.title_label.draw()
         glTranslatef(0,h-m,0)
         self.score_label.draw()
+        glTranslatef(w-m,0,0)
+        self.ammo_label.draw()
         glPopMatrix()

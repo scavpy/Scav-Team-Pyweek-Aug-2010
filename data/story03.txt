@@ -1,2 +1,3 @@
 Metallic hexagons are worth more points than normal ones. Also, some colours are worth more than others.
 Try and get a good score, but if you die you lose all your points.
+Black hexagons are hard to see. Watch out for them blocking your path.

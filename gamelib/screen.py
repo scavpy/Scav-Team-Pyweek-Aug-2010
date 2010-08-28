@@ -300,6 +300,8 @@ class GameScreen(Screen):
             if self.special_ammo <= 0:
                 return
             self.special_ammo -= 1
+            self["hud"].set_ammo(self.special_ammo,
+                                 self.special_ball.__name__)
         if self.first_person:
             a = radians(self.player.angle)
             v = Vec(cos(a),sin(a))
@@ -343,6 +345,11 @@ class GameScreen(Screen):
         if self.keysdown:
             if self.first_person:
                 a = self.player.angle
+                strafe = 0
+                if pygletkey.Q in self.keysdown:
+                    strafe = a+90
+                elif pygletkey.E in self.keysdown:
+                    strafe = a-90
                 if pygletkey.A in self.keysdown:
                     a += 5
                 if pygletkey.D in self.keysdown:
@@ -351,9 +358,12 @@ class GameScreen(Screen):
                 if pygletkey.W in self.keysdown:
                     v = Vec(cos(theta),sin(theta)) * ms * 0.01
                 elif pygletkey.S in self.keysdown:
-                    v = Vec(cos(theta),sin(theta)) * ms * -0.01                    
+                    v = Vec(cos(theta),sin(theta)) * ms * -0.01
                 else:
                     v = Vec(0,0)
+                if strafe:
+                    A = radians(strafe)
+                    v += Vec(cos(A),sin(A)) * ms * 0.01
                 dx,dy,dz = v
                 player.angle = a
                 self.camera.look_from_spherical(30,a + 180,20,200)
@@ -381,10 +391,14 @@ class GameScreen(Screen):
                 phex = collision.nearest_neighbours(newpos.x,newpos.y,0).next()
                 if phex == self.player_exit:
                     sounds.play("fanfare")
-                    level = self.find_level(self.levelnum+1)
+                    if self.levelnum > 0:
+                        levelnum = self.levelnum + 1
+                    else:
+                        levelnum = self.levelnum - 1
+                    level = self.find_level(levelnum)
                     if level:
                         self.exit_to(GameScreen,score=self.score,level=level,
-                                     levelnum=self.levelnum+1,ammo=self.special_ammo,
+                                     levelnum=levelnum,ammo=self.special_ammo,
                                      special=self.special_ball)
                     else:
                         self.exit_to(VictoryScreen,score=self.score)
@@ -398,6 +412,8 @@ class GameScreen(Screen):
                             self.special_ball = B
                             self.special_ammo = B.ammo
                         sounds.play("chamber")
+                        self["hud"].set_ammo(self.special_ammo, 
+                                             self.special_ball.__name__)
                         b = self[repr(phex)]
                         if b:
                             self["powerups"].remove(b)
