@@ -214,7 +214,7 @@ class GameScreen(Screen):
         powerups = part.Group("powerups",
                               self.build_powerups(self.level))
         sv = SceneView("scene",[monsters,hf,player,balls,powerups])
-        sv.camera.look_at((x,y,0),10)
+        sv.camera.look_at((x,y,1),10)
         sv.camera.look_from_spherical(87,-90,300)
         sv.camera.look_from_spherical(80,-90,100,1000)
         self.camera = sv.camera
@@ -322,7 +322,7 @@ class GameScreen(Screen):
                 self.camera.look_from_spherical(80,270,100,200)
                 self.first_person = False
             else:
-                self.camera.look_from_spherical(15,self.player.angle + 180,50,200)
+                self.camera.look_from_spherical(2,self.player.angle + 180,2,200)
                 self.first_person = True
         elif sym == pygletkey.ESCAPE:
             self.player_die("boredom")
@@ -344,9 +344,9 @@ class GameScreen(Screen):
             if self.first_person:
                 a = self.player.angle
                 if pygletkey.A in self.keysdown:
-                    a += 3
+                    a += 5
                 if pygletkey.D in self.keysdown:
-                    a -= 3
+                    a -= 5
                 theta = radians(a)
                 if pygletkey.W in self.keysdown:
                     v = Vec(cos(theta),sin(theta)) * ms * 0.01
