@@ -73,29 +73,27 @@ class Viewpoint(part.Group):
     effect.
     """
     _default_geom = {"vport":(0.0, 0.0, 1.0, 1.0)}
-
+    _default_style = {"ClearColor":None}
     def __init__(self, *args, **kwd):
         super(Viewpoint,self).__init__(*args,**kwd)
-        self.dl_projection = gl.glGenLists(2)
+        self.dl_projection = gl.glGenLists(4)
         self.dl_style = self.dl_projection + 1
+        self.dl_vport = self.dl_projection + 2
+        self.dl_clear = self.dl_projection + 3
         self.camera = None
-        self.prepare()
         self.shared = kwd.get("shared",())
 
     def __del__(self):
         if self.dl_projection and glDeleteLists:
-            glDeleteLists(self.dl_projection,2)
+            glDeleteLists(self.dl_projection,4)
 
-    def draw(self,mode):
-        if mode != "TRANSPARENT":
-            clearcolour = self.getstyle("ClearColor",None)
-            if clearcolour:
-                glScissor(*self.vport)
-                glEnable(GL_SCISSOR_TEST)
-                glClearColor(*clearcolour)
-                glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
-                glDisable(GL_SCISSOR_TEST)
-        super(Viewpoint,self).draw(mode)
+    def render(self,mode):
+        if mode == "OPAQUE":
+            glCallList(self.dl_clear)
+        for p in self.contents:
+            p.draw(mode)
+        for p in self.shared:
+            p.draw(mode)
 
     # Resize
     def resize(self,width,height):
@@ -104,12 +102,23 @@ class Viewpoint(part.Group):
         projection. """
         vport = self.getgeom("vport",(0.0, 0.0, 1.0, 1.0))
         self.vport = relative_rect((width,height),vport)
-        with gl_compile(self.dl_projection):
+        with gl_compile(self.dl_vport):
             glViewport(*self.vport)
+        with gl_compile(self.dl_projection):
             self.project()
             glMatrixMode(GL_MODELVIEW)
             glLoadIdentity()
+        self.prepare()
 
+    def prepare(self):
+        clearcolour = self.getstyle("ClearColor",None)
+        with gl_compile(self.dl_clear):
+            if clearcolour:
+                glScissor(*self.vport)
+                glEnable(GL_SCISSOR_TEST)
+                glClearColor(*clearcolour)
+                glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
+                glDisable(GL_SCISSOR_TEST)
 
     def project(self): # abstract
         pass
@@ -120,6 +129,7 @@ class Viewpoint(part.Group):
 
     # Part implementation
     def setup_geom(self):
+        glCallList(self.dl_vport) # set up viewport before picking matrix
         picking.project() # identity or picking matrix
         glCallList(self.dl_projection)
         cam = self.camera
@@ -136,15 +146,10 @@ class Viewpoint(part.Group):
         if cam: cam.step(ms)
         self.step_contents(ms)
 
-    def render(self,mode):
-        for p in self.contents:
-            p.draw(mode)
-        for s in self.shared:
-            s.draw(mode)
-    
 class OrthoView(Viewpoint):
     """ Orthographic projection """
     _default_geom = {"vport":(0.0,0.0,1.0,1.0),
+                     "left":-1.0, "right":1.0, "top":1.0, "bottom":-1.0,
                      "near":-1.0, "far":1.0}
     def __init__(self,*args,**kwd):
         super(OrthoView,self).__init__(*args,**kwd)
@@ -163,6 +168,7 @@ class OrthoView(Viewpoint):
 class SceneView(Viewpoint):
     """ Perspective projection """
     _default_geom = {
+        "vport":(0.0,0.0,1.0,1.0),
         'perspective_angle':15.0,
         'near':1.0,
         'far':1000.0}

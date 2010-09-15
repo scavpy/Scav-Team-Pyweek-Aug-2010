@@ -50,7 +50,7 @@ class MDLdict(object):
                 glMaterialf(GL_FRONT, GL_SHININESS, float(tokens[1]))
             elif tokens[0] in mat_params:
                 params = map(float,tokens[1:])
-                floats4 = Mat4Floats(1.0)
+                floats4 = Mat4Floats(1.0,1.0,1.0,1.0)
                 for i,f in enumerate(params):
                     floats4[i] = f
                 self.mat_trans[mname] = (floats4[3] < 1.0)
@@ -66,7 +66,7 @@ class MDLdict(object):
                 if tex:
                     self.mat_textures[tname] = tex
                     trans = self.mat_trans.get(mname,False)
-                    self.mat_trans[mname] = trans or tex.transparent
+                    self.mat_trans[mname] = trans
                     glEnable(GL_TEXTURE_2D)
                     glBindTexture(GL_TEXTURE_2D,tex.id)
                 # will end list before starting next one, or at end

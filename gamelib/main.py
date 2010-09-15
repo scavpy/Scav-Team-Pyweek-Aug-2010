@@ -13,7 +13,6 @@ from pygame import mixer
 
 options = None
 
-import monkey_patches
 import sounds
 
 def main():

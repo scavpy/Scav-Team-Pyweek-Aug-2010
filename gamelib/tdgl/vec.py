@@ -28,17 +28,10 @@ def normalise(x,y,z):
 
 def plane_normal(vertex1,vertex2,vertex3):
     """Vector normal to the triangle given by 3 vertices"""
-    #cdef double v1[3], v2[3]
-    v1 = [0.0] * 3
-    v2 = [0.0] * 3
-    cross = [0.0] * 3
-    for i in 0,1,2:
-        v1[i] = vertex2[i] - vertex1[i]
-        v2[i] = vertex3[i] - vertex1[i]
-    cross[0] = v1[1] * v2[2] - v1[2] * v2[1]
-    cross[1] = v1[2] * v2[0] - v1[0] * v2[2]
-    cross[2] = v1[0] * v2[1] - v1[1] * v2[0]
-    return normalise(cross[0],cross[1],cross[2])
+    v = Vec(vertex1)
+    v2 = Vec(vertex2) - v
+    v3 = Vec(vertex3) - v
+    return v2.cross(v3).normalise()
 
 def away_from(vertex,centre):
     """Unit vector in direction of line segment from 'centre' to 'vertex'"""
@@ -91,18 +84,27 @@ class Vec(__baseclass):
     def __mul__(self, k):
         """ multiply by scalar """
         return Vec(self.x * k, self.y * k, self.z * k)
+    __rmul__ = __mul__
         
     def __add__(self, other):
         """ vector addition """
         if type(other) is not Vec:
             other = Vec(other)
         return Vec(self.x + other.x, self.y + other.y, self.z + other.z)
+    __radd__ = __add__
         
     def __sub__(self, other):
         """ vector subtraction """
         if type(other) is not Vec:
             other = Vec(other)
         return Vec(self.x - other.x, self.y - other.y, self.z - other.z)
+    __rsub__ = __sub__
+
+    def __div__(self,k):
+        """ multiply by reciprocal of scalar """
+        d = 1.0/k
+        return self * d
+    __rdiv__ = __div__
         
     def __neg__(self):
         """ Reverse direction of vector """

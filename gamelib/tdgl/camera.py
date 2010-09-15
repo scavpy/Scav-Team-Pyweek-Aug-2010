@@ -29,22 +29,23 @@ class Camera(object):
         self.spherical = False
         self.prepare_args()
     def prepare_args(self):
+        anim = self.animator
         if self.spherical:
-            d = self.animator['distance']
-            theta = radians(self.animator['longitude'])
-            phi = radians(self.animator['latitude'])
+            d = anim['distance']
+            theta = radians(anim['longitude'])
+            phi = radians(anim['latitude'])
             r = d * cos(phi)
             dz = d * sin(phi)
             dx = r * cos(theta)
             dy = r * sin(theta)
-            x0,y0,z0 = self.animator['looking_at']
+            x0,y0,z0 = anim['looking_at']
             up_r = - sin(phi)
             up = (up_r * cos(theta), up_r * sin(theta), cos(phi))
-            self.animator['looking_from'] = (x0+dx, y0+dy, z0+dz)
-            self.animator['up_vector'] = up
-        self.lookat_args = (self.animator['looking_from'] +
-                            self.animator['looking_at'] +
-                            self.animator['up_vector'])
+            anim['looking_from'] = (x0+dx, y0+dy, z0+dz)
+            anim['up_vector'] = up
+        self.lookat_args = (tuple(anim['looking_from']) +
+                            tuple(anim['looking_at']) +
+                            tuple(anim['up_vector']))
     def setup(self):
         glLoadIdentity()
         gluLookAt(*self.lookat_args)

@@ -2,11 +2,12 @@
 """Generic routines that might be useful for animation by interpolating
    values.
 
-    Copyright Sep 2007 Peter Harris
+    Copyright Sep 2010 Peter Harris
     Released under the terms of the GNU General Public License, v3 or later
     (see www.gnu.org for details)
 """
 from __future__ import division
+from copy import deepcopy
 
 def interpolator(xfrom,xto,ms):
     """Interpolate between two values, which should be both a number,
@@ -31,7 +32,7 @@ class Interpolator(object):
         self.endms = ms
         self.nowms = 0
     def step(self,ms):
-        self.nowms = min(self.endms, self.nowms + ms)
+        self.nowms = max(min(self.endms, self.nowms + ms),0)
         self.blend()
         return self.current
     def blend(self):
@@ -47,6 +48,8 @@ class Interpolator(object):
             self.current = self.vfrom
     def finished(self):
         return self.nowms >= self.endms
+    def at_start(self):
+        return self.nowms == 0
 
 class TupleInterpolator(Interpolator):
     """An object that interpolates between one tuple of values to another
@@ -95,7 +98,8 @@ class DictInterpolator(Interpolator):
 
 class Oscillator(object):
     """Go from one value to another and back indefinitely.
-    NB: this Interpolator-like thingy is NEVER finished. Be careful.
+    NB: this Interpolator-like thingy has no real start or finishing point,
+    so it is NEVER finished.
     """
     def __init__(self,xfrom,xto,ms,msback=None):
         if msback is None:
@@ -113,29 +117,41 @@ class Oscillator(object):
         return self.current
     def finished(self):
         return False
+    def at_start(self):
+        return False
 
 class Sequencer(object):
     """ interpolate between a series of values """
-    def __init__(self,xlist,steplist):
+    def __init__(self,xlist,mslist):
         self.xlist = xlist
-        self.steplist = steplist
-        self.interp = interpolator(xlist[0],xlist[1],steplist[0])
-        self.step(0)
+        self.mslist = mslist
+        self.interp = interpolator(xlist[0],xlist[1],mslist[0])
+        self.index = 0
+        self.current = xlist[0]
 
     def step(self,ms):
-        self.interp.step(ms)
-        self.current = self.interp.current
-        xlist = self.xlist
-        steplist = self.steplist
-        if self.interp.finished() and steplist:
-            xlist[:1] = []
-            steplist[:1] = []
-            if len(xlist) > 1:
-                self.interp = interpolator(xlist[0],xlist[1],steplist[0])
+        interp = self.interp
+        interp.step(ms)
+        self.current = interp.current
+        i = self.index
+        if interp.finished() and i < (len(self.mslist) - 1) and ms > 0:
+            xlist = self.xlist
+            self.index += 1
+            i += 1
+            self.interp = interpolator(xlist[i],xlist[i+1],self.mslist[i])
+        elif interp.at_start() and i > 0 and ms < 0:
+            xlist = self.xlist
+            self.index -= 1
+            i -= 1
+            self.interp = interpolator(xlist[i],xlist[i+1],self.mslist[i])
+            self.interp.step(self.mslist[i]) # put at end
         return self.current
 
     def finished(self):
-        return not self.steplist
+        return self.interp.finished() and self.index == len(self.mslist) - 1
+
+    def at_start(self):
+        return self.interp.at_start() and self.index == 0
 
     
 class Animator(object):
@@ -185,10 +201,9 @@ class Animator(object):
         except KeyError:
             pass
     def copy(self):
-        """Return a shallow copy of the Animator's current state.
-        There's no point in copying the interpolators - you can't
-        in general copy a generator."""
-        return Animator(**self.current)
+        """Return a copy of the Animator's current state."""
+        return deepcopy(self)
+
     def update(self,other):
         """Update by setting current values from another dict-like object."""
         for k,x in other.items:
@@ -200,14 +215,22 @@ class Animator(object):
                                                     xto,ms)
         else:
             self[name] = xto
-    def oscillate(self,name,xfrom,xto,steps=1):
+    def oscillate(self,name,xfrom,xto,ms=0,msback=None):
         """Begin oscillating a value
         NB: it will NEVER be finished, until replaced with change() method.
         """
-        self.interpolators[name] = Oscillator(xfrom,xto,steps)
-    def sequence(self,name,xlist,steplist):
-        """Begin a more complex sequence of changes"""
-        self.interpolators[name] = Sequencer(xlist,steplist)
+        self.interpolators[name] = Oscillator(xfrom,xto,ms,msback)
+    def sequence(self,name,xlist,mslist):
+        """Begin a more complex sequence of changes
+           If name already in current, start the sequence at its
+           current value (and if necessary add an entry to mslist).
+        """
+        x0 = self.current.get(name)
+        if x0 is not None and x0 != xlist[0]:
+            if len(mslist) < len(xlist):
+                mslist = mslist[:1] + mslist
+            xlist = [x0] + xlist
+        self.interpolators[name] = Sequencer(xlist,mslist)
 
 class Mutator(Animator):
     """An animator that works on another dict-like object"""

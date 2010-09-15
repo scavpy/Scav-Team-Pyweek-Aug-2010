@@ -30,6 +30,9 @@ def start(vpx,vpy,vpdx,vpdy,backwards=False):
     If you have already set up projection, need to call with backwards=True,
     which will get a copy of the projection matrix and multiply it back in
     after setting up the picking matrix.
+
+    Otherwise you should call picking.project() before setting up the
+    projection.
     """
     global active, pickRect, _lastLabelNum
     if active:
@@ -44,8 +47,7 @@ def start(vpx,vpy,vpdx,vpdy,backwards=False):
     glPushName(0)
     if backwards:
         projection_matrix = glGetFloatv(GL_PROJECTION_MATRIX)
-    project()
-    if backwards:
+        project()
         glMultMatrixf(projection_matrix)
     
 def project():
@@ -103,9 +105,10 @@ def end():  # end --> [(minz,maxz,ob)]
         minz = float(_buffer[j+1]) / 0x7fffffff
         maxz = float(_buffer[j+2]) / 0x7fffffff
         hit = _labelDict.get(_buffer[j+3])
-        hit.minz = minz
-        hit.maxz = maxz
-        picklist.append((minz,maxz,hit))
+        if hit:
+            hit.minz = minz
+            hit.maxz = maxz
+            picklist.append((minz,maxz,hit))
         j += 3 + stackdepth
     picklist.sort()
     return picklist

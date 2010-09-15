@@ -50,22 +50,14 @@ def process(hoxlist, getgeom, drawpiece,withstyle=True):
                 if op == DRAW or (op == STYLE and withstyle):
                     drawpiece(h[1])
                 elif op == MOVE:
-                    try:    #debug
-                        op,name,axis,mult = h
-                    except ValueError:  #debug
-                        print h #debug
-                        raise   #debug
+                    op,name,axis,mult = h
                     t = getgeom(name)
                     if not t: continue  # skip the rest if zero movement
                     v = [0.0,0.0,0.0]
                     v[axis] = t * mult
                     glTranslatef(*v)
                 elif op == ROT:
-                    try:    #debug
-                        op,name,axis,mult = h
-                    except ValueError:  #debug
-                        print h #debug
-                        raise   #debug
+                    op,name,axis,mult = h
                     a = getgeom(name)
                     if not a: continue  # skip the rest if zero rotation
                     v = [0.0,0.0,0.0]
@@ -76,3 +68,39 @@ def process(hoxlist, getgeom, drawpiece,withstyle=True):
     finally:
         glPopMatrix()   # GOT to do this no matter what!
 
+def compile(hoxlist,justtext=False):
+    """Compile a hox list into a function"""
+    cmds = ["def compiled_hox(getgeom,drawpiece,withstyle=True):"]
+    _compile(hoxlist,cmds)
+    fntext = "\n  ".join(cmds)
+    if justtext:
+        return fntext
+    exec fntext
+    return compiled_hox
+
+
+def _compile(hoxlist,cmds):
+    cmds.append("glPushMatrix()")
+    for h in hoxlist:
+        if not h: continue
+        if type(h) is tuple:
+            op = h[0]
+            if op == DRAW:
+                cmds.append("drawpiece('{0}')".format(h[1]))
+            elif op == STYLE:
+                cmds.append("if withstyle: drawpiece('{0}')".format(h[1]))
+            elif op == MOVE:
+                op,name,axis,mult = h
+                cmds.append("t = getgeom('{0}')".format(name))
+                args = [0] * 3
+                args[axis] = "t * {0}".format(mult)
+                cmds.append("if t: glTranslatef({0},{1},{2})".format(*args))
+            elif op == ROT:
+                op,name,axis,mult = h
+                cmds.append("a = getgeom('{0}')".format(name))
+                args = [0] * 3
+                args[axis] = 1
+                cmds.append("if a: glRotatef(a * {0},{1},{2},{3})".format(mult,*args))
+        else:
+            _compile(h,cmds)
+    cmds.append("glPopMatrix()")

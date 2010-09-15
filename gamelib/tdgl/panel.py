@@ -43,7 +43,8 @@ class Panel(part.ScalePart):
         self.bgdl = dl     # for background
         self.bddl = dl + 1 # for border
     def __del__(self):
-        glDeleteLists(self.bgdl,2)
+        if glDeleteLists:
+            glDeleteLists(self.bgdl,2)
     def render(self,mode="OPAQUE"):
         if mode == 'PICK':
             picking.label(self)

@@ -123,3 +123,5 @@ def release_light(light):
         light_switch(light,False)
         claimed_lights.remove(light)
         free_lights.append(light)
+        if light in conditions:
+            del conditions[light]
