@@ -83,7 +83,7 @@ def light_spot_exponent(lightnum,exponent,ms=0):
     adjust_light(lightnum,GL_SPOT_EXPONENT,exponent,ms)
     
 def light_attenuation(lightnum,value=0,ms=0):
-    adjust_light(lightnum,GL_QUADRATIC_ATTENUATION,value,ms)
+    adjust_light(lightnum,GL_QUADRATIC_ATTENUATION,(value,),ms)
 
 def oscillate_light(lightnum,param,vfrom,vto,ms):
     """Set up an oscillating lighting parameter"""

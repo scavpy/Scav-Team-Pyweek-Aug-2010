@@ -74,6 +74,7 @@ class Viewpoint(part.Group):
     """
     _default_geom = {"vport":(0.0, 0.0, 1.0, 1.0)}
     _default_style = {"ClearColor":None}
+    vport = (0,0,1,1) # should be set correctly by resize() to be useful
     def __init__(self, *args, **kwd):
         super(Viewpoint,self).__init__(*args,**kwd)
         self.dl_projection = gl.glGenLists(4)
