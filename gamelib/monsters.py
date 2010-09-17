@@ -7,8 +7,7 @@
 """
 from math import atan2, degrees, fmod, sin, cos, radians
 import random
-from tdgl import objpart, animator, lighting
-from tdgl.gl import *
+from tdgl import objpart, lighting
 from tdgl.vec import Vec
 import graphics
 import sounds
@@ -16,24 +15,28 @@ import collision
 
 
 class Monster(objpart.ObjPart):
+    """ A Monster """
     _has_transparent = True
-    _style_attributes = ('obj-pieces','obj-filename',
-                         'override-mtl','mtl-override-pieces',
-                         'frames','rate')
+    _style_attributes = ('obj-pieces', 'obj-filename',
+                         'override-mtl', 'mtl-override-pieces',
+                         'frames', 'rate')
     _default_style = {"rate":100}
     _default_geom = {"radius":0.49}
     harm_type = "monsterated by a"
     speed = 1.0
 
-    def __init__(self,name='',frame=0,velocity=(0,0,0),level=None,**kw):
-        super(Monster,self).__init__(name,**kw)
+    def __init__(self, name='', frame=0, velocity=(0,0,0), level=None, **kw):
+        self.pieces = ()
+        self.framelist = []
+        super(Monster, self).__init__(name, **kw)
         self.frame = frame
         self.count = self.getstyle("rate")
         self.velocity = Vec(velocity)
 
     def prepare(self):
-        super(Monster,self).prepare()
-        frames = self.getstyle("frames",{})
+        """ Decide which pieces to draw based on animation frame """
+        super(Monster, self).prepare()
+        frames = self.getstyle("frames", {})
         self.count = self.getstyle("rate")
         framelist = sorted(frames.items())
         self.framelist = framelist[:self.frame] + framelist[self.frame:]
@@ -42,17 +45,19 @@ class Monster(objpart.ObjPart):
         else:
             self.pieces = self.obj.pieces()
 
-    def step(self,ms):
-        super(Monster,self).step(ms)
+    def step(self, ms=20):
+        """ change monster's animation frame """
+        super(Monster, self).step(ms)
         self.count -= ms
         if self.count < 0:
             self.count = self.getstyle("rate")
             if self.framelist:
-                f,pieces = self.framelist.pop(0)
-                self.framelist.append((f,pieces))
+                frame, pieces = self.framelist.pop(0)
+                self.framelist.append((frame, pieces))
                 self.pieces = pieces
 
-    def turn_to(self,v):
+    def turn_to(self, v):
+        """ Turn to face direction of new velocity vector """
         self.angle = degrees(atan2(v.y,v.x))
         self.velocity = v
 
@@ -73,8 +78,8 @@ class Squashy(Monster):
     _default_geom = {"radius":0.49}
     speed = 0.6
     harm_type = "contaminated by a"
-    """ On collision with a ball, die"""
     def on_collision(self,what,where,direction):
+        """ On collision with a ball, die"""
         if isinstance(what,graphics.Ball):
             self._expired = True
             sounds.play("squelch")
@@ -85,10 +90,10 @@ class Squashy(Monster):
 class Wanderer(Monster):
     _default_geom = {"radius":0.3}
     speed = 0.8
-    """ On collision with a ball, pick a random
-    direction and speed"""
 
     def on_collision(self,what,where,direction):
+        """ On collision with a ball, pick a random
+        direction and speed"""
         if isinstance(what,graphics.Ball):
             r = self.velocity.length()
             if r < 0.001 or r > 0.04:
@@ -193,7 +198,7 @@ class Balrog(Hunter):
         lighting.light_colour(self.dark,(0.1,-0.8,-0.8,1.0))
         x,y,z = self.pos
         lighting.light_position(self.dark,(x,y,1.0,1.0))
-        lighting.light_attenuation(self.dark,0.1)
+        lighting.light_attenuation(self.dark,0.05)
         lighting.light_switch(self.dark,True)
 
     def __del__(self):
@@ -221,51 +226,65 @@ class Balrog(Hunter):
     def step(self,ms):
         super(Balrog,self).step(ms)
         x,y,z = self.pos
-        lighting.light_position(self.dark,(x,y,1.0,1.0))
+        lighting.light_position(self.dark,(x,y,z+1.0,1.0))
 
 
 MonsterStyles = {
-    "Wanderer": {"obj-filename":"wanderer.obj",
-                 "mtl-override-pieces":["Swirly1","Swirly2","Swirly3","Swirly4"],
-                 "override-mtl":"Chocolate",
-                 "frames":{"1":["Spiky1","Swirly1"],
-                           "2":["Spiky2","Swirly2"],
-                           "3":["Spiky3","Swirly3"],
-                           "4":["Spiky4","Swirly4"]},
-                 "rate":100},
-    "Hunter": {"obj-filename":"hunter.obj",
-               "mtl-override-pieces":["Eye"],
-               "override-mtl":"Jade",
-               "frames":{"1":["Body","Legs","Eye","Pincers1"],
-                         "2":["Body","Legs","Eye","Pincers2"],
-                         "3":["Body","Legs","Eye","Pincers3"],
-                         "4":["Body","Legs","Eye","Pincers2"]},
-               "rate":100,},
-    "Mimic": {"obj-filename":"hunter.obj",
-              "mtl-override-pieces":["Eye"],
-              "override-mtl":"Blood",
-              "frames":{"1":["Body","Legs","Eye","Pincers1"],
-                        "2":["Body","Legs","Eye","Pincers2"],
-                        "3":["Body","Legs","Eye","Pincers3"],
-                        "4":["Body","Legs","Eye","Pincers2"]},
-              "rate":50,
-              "mimic-filename":"wall.obj"},
-    "Squashy": {"obj-filename":"squelchy.obj",
-                "mtl-override-pieces":[],
-                "override-mtl":"White"},
-    "Monster": {"obj-filename":"crab.obj",
-                "mtl-override-pieces":["Body"],
-                "override-mtl":"Steel"},
-    "Balrog": {"obj-filename":"balrog.obj",
-               "frames":{"1":["Step0"],
-                         "2":["Step1"],
-                         "3":["Step0"],
-                         "4":["Step2"]},
-               "rate":300},
-    "Shuttler": {"obj-filename":"crab.obj",
-                 "mtl-override-pieces":["Body"],
-                 "frames":{"1":["Body","LPincer","RPincer","LFlipper","RFlipper","Legs1"],
-                           "2":["Body","LPincer","RPincer","LFlipper","RFlipper","Legs2"]},
-                 "rate":100,
-                 "override-mtl":"Steel"},
+
+    "Wanderer": 
+    {"obj-filename":"wanderer.obj",
+     "mtl-override-pieces":["Swirly1","Swirly2","Swirly3","Swirly4"],
+     "override-mtl":"Chocolate",
+     "frames":{"1":["Spiky1","Swirly1"],
+               "2":["Spiky2","Swirly2"],
+               "3":["Spiky3","Swirly3"],
+               "4":["Spiky4","Swirly4"]},
+     "rate":100},
+
+    "Hunter": 
+    {"obj-filename":"hunter.obj",
+     "mtl-override-pieces":["Eye"],
+     "override-mtl":"Jade",
+     "frames":{"1":["Body","Legs","Eye","Pincers1"],
+               "2":["Body","Legs","Eye","Pincers2"],
+               "3":["Body","Legs","Eye","Pincers3"],
+               "4":["Body","Legs","Eye","Pincers2"]},
+     "rate":100,},
+
+    "Mimic": 
+    {"obj-filename":"hunter.obj",
+     "mtl-override-pieces":["Eye"],
+     "override-mtl":"Blood",
+     "frames":{"1":["Body","Legs","Eye","Pincers1"],
+               "2":["Body","Legs","Eye","Pincers2"],
+               "3":["Body","Legs","Eye","Pincers3"],
+               "4":["Body","Legs","Eye","Pincers2"]},
+     "rate":50,
+     "mimic-filename":"wall.obj"},
+
+    "Squashy": 
+    {"obj-filename":"squelchy.obj",
+     "mtl-override-pieces":[],
+     "override-mtl":"White"},
+
+    "Monster": 
+    {"obj-filename":"crab.obj",
+     "mtl-override-pieces":["Body"],
+     "override-mtl":"Steel"},
+
+    "Balrog": 
+    {"obj-filename":"balrog.obj",
+     "frames":{"1":["Step0"],
+               "2":["Step1"],
+               "3":["Step0"],
+               "4":["Step2"]},
+     "rate":300},
+
+    "Shuttler": 
+    {"obj-filename":"crab.obj",
+     "mtl-override-pieces":["Body"],
+     "frames":{"1":["Body","LPincer","RPincer","LFlipper","RFlipper","Legs1"],
+               "2":["Body","LPincer","RPincer","LFlipper","RFlipper","Legs2"]},
+     "rate":100,
+     "override-mtl":"Steel"},
     }
