@@ -27,10 +27,11 @@ class MDLdict(object):
     def get(self,k):
         return self.mat_dls.get(k)
     def load(self,fname):
-        mtllines = resource.location(fname).open(fname,"r")
+        mtllines = resource.file(fname,"ru")
         mname = None
         mat_dl = None
-        mat_params = {'Ka':GL_AMBIENT, 'Kd': GL_DIFFUSE, 'Ks':GL_SPECULAR}
+        mat_params = {'Ka':GL_AMBIENT, 'Kd': GL_DIFFUSE,
+                      'Ks':GL_SPECULAR, 'Ke':GL_EMISSION}
         tname = None
         for line in mtllines:
             tokens = line.split()

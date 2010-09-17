@@ -33,12 +33,12 @@ from __future__ import division
 
 from gl import *
 
-import part, lighting, camera, picking
+import part, camera, picking
 
-__all__ = ('OrthoView','SceneView','relative_rect','relative_pos')
+__all__ = ('OrthoView', 'SceneView', 'relative_rect', 'relative_pos')
         
 
-def vpdim(n,m):
+def vpdim(n, m):
     """Calculate viewport dimension
     based on:
       n - selector of value
@@ -48,20 +48,20 @@ def vpdim(n,m):
     if n < 0 : return  m - n
     otherwise return n
     """
-    if isinstance(n,float):
+    if isinstance(n, float):
         return int(n * m)
     if n < 0:
         return m + n
     return n
 
-def relative_rect((w,h),(rx,ry,rw,rh)):
+def relative_rect((w, h), (rx, ry, rw, rh)):
     """ A rectangle (x,y,w,h), scaled relative to a viewport size"""
-    return (vpdim(rx,w),vpdim(ry,h),vpdim(rw,w),vpdim(rh,h))
+    return (vpdim(rx, w), vpdim(ry, h), vpdim(rw, w), vpdim(rh, h))
 
-def relative_pos((w,h),pos):
+def relative_pos((w, h), pos):
     """relative position (pos can have 2 or 3 coords)"""
-    x,y = pos[:2]
-    return (vpdim(x,w),vpdim(y,h)) + tuple(pos[2:]) 
+    x, y = pos[:2]
+    return (vpdim(x, w), vpdim(y, h)) + tuple(pos[2:]) 
 
 class Viewpoint(part.Group):
     """View of a collection of parts.
@@ -74,21 +74,23 @@ class Viewpoint(part.Group):
     """
     _default_geom = {"vport":(0.0, 0.0, 1.0, 1.0)}
     _default_style = {"ClearColor":None}
-    vport = (0,0,1,1) # should be set correctly by resize() to be useful
+    vport = (0, 0, 1, 1) # must set with resize() to be useful
     def __init__(self, *args, **kwd):
-        super(Viewpoint,self).__init__(*args,**kwd)
-        self.dl_projection = gl.glGenLists(4)
+        super(Viewpoint, self).__init__(*args, **kwd)
+        self.dl_projection = glGenLists(4)
         self.dl_style = self.dl_projection + 1
         self.dl_vport = self.dl_projection + 2
         self.dl_clear = self.dl_projection + 3
         self.camera = None
-        self.shared = kwd.get("shared",())
+        self.shared = kwd.get("shared", ())
+        self.vport = (0, 0, 1, 1)
 
     def __del__(self):
         if self.dl_projection and glDeleteLists:
-            glDeleteLists(self.dl_projection,4)
+            glDeleteLists(self.dl_projection, 4)
 
-    def render(self,mode):
+    def render(self, mode):
+        """ render the contents of the viewpoint """
         if mode == "OPAQUE":
             glCallList(self.dl_clear)
         for p in self.contents:
@@ -97,12 +99,12 @@ class Viewpoint(part.Group):
             p.draw(mode)
 
     # Resize
-    def resize(self,width,height):
+    def resize(self, width, height):
         """ Set the viewport and the projection
         Prepares a displaylist for the viewport and
         projection. """
-        vport = self.getgeom("vport",(0.0, 0.0, 1.0, 1.0))
-        self.vport = relative_rect((width,height),vport)
+        vport = self.getgeom("vport", (0.0, 0.0, 1.0, 1.0))
+        self.vport = relative_rect((width, height), vport)
         with gl_compile(self.dl_vport):
             glViewport(*self.vport)
         with gl_compile(self.dl_projection):
@@ -112,7 +114,8 @@ class Viewpoint(part.Group):
         self.prepare()
 
     def prepare(self):
-        clearcolour = self.getstyle("ClearColor",None)
+        """ compile a display list to clear just the viewpoint's rectangle """
+        clearcolour = self.getstyle("ClearColor", None)
         with gl_compile(self.dl_clear):
             if clearcolour:
                 glScissor(*self.vport)
@@ -121,15 +124,18 @@ class Viewpoint(part.Group):
                 glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
                 glDisable(GL_SCISSOR_TEST)
 
-    def project(self): # abstract
+    def project(self):
+        """ override this to set up the GL_PROJECTION matrix """
         pass
 
     # Set up some Open GL commands for setup_style
     def compile_style(self):
+        """ with this, define display list to be called in setup_style """
         return gl_compile(self.dl_style)
 
     # Part implementation
     def setup_geom(self):
+        """ Set up projection matrix and camera position """
         glCallList(self.dl_vport) # set up viewport before picking matrix
         picking.project() # identity or picking matrix
         glCallList(self.dl_projection)
@@ -137,53 +143,58 @@ class Viewpoint(part.Group):
         if cam:
             cam.setup()
     def setdown_geom(self):
+        """ do nothing, setup_geom() didn't glPushmatrix() """
         pass
 
     def setup_style(self):
+        """ call the display list defined with compile_style """
         glCallList(self.dl_style)
 
-    def step(self,ms):
+    def step(self, ms):
+        """ move the camera and step the contents """
         cam = self.camera
-        if cam: cam.step(ms)
+        if cam:
+            cam.step(ms)
         self.step_contents(ms)
 
 class OrthoView(Viewpoint):
     """ Orthographic projection """
-    _default_geom = {"vport":(0.0,0.0,1.0,1.0),
+    _default_geom = {"vport":(0.0, 0.0, 1.0, 1.0),
                      "left":-1.0, "right":1.0, "top":1.0, "bottom":-1.0,
                      "near":-1.0, "far":1.0}
-    def __init__(self,*args,**kwd):
-        super(OrthoView,self).__init__(*args,**kwd)
+    def __init__(self, *args, **kwd):
+        super(OrthoView, self).__init__(*args, **kwd)
     
     def project(self):
+        """ Set up an orthographic projection """
         getgeom = self.getgeom
-        near = getgeom("near",-1.0)
-        far = getgeom("far",1.0)
-        vpx,vpy,vpw,vph = self.vport
-        left = getgeom("left",0)
-        right = getgeom("right",vpw)
-        top = getgeom("top",vph)
-        bot = getgeom("bottom",0)
-        glOrtho(left,right,bot,top,near,far)
+        near = getgeom("near", -1.0)
+        far = getgeom("far", 1.0)
+        vpw, vph = self.vport[2:]
+        left = getgeom("left", 0)
+        right = getgeom("right", vpw)
+        top = getgeom("top", vph)
+        bot = getgeom("bottom", 0)
+        glOrtho(left, right, bot, top, near, far)
 
 class SceneView(Viewpoint):
     """ Perspective projection """
     _default_geom = {
-        "vport":(0.0,0.0,1.0,1.0),
-        'perspective_angle':15.0,
+        "vport":(0.0, 0.0, 1.0, 1.0),
+        'perspective_angle':30.0,
         'near':1.0,
         'far':1000.0}
     
-    def __init__(self,*args,**kwd):
-        super(SceneView,self).__init__(*args,**kwd)
+    def __init__(self, *args, **kwd):
+        super(SceneView, self).__init__(*args, **kwd)
         self.camera = camera.Camera()
         
     def project(self):
-        vpx,vpy,vpw,vph = self.vport
+        """ Set up the perspective projection """
+        vpw, vph = self.vport[2:]
         aspect = (vpw/vph if vph else vpw)
         getgeom = self.getgeom
-        near = getgeom("near",1.0)
-        far = getgeom("far",1000.0)
-        angle = getgeom("perspective_angle",15.0)
-        gluPerspective(angle,aspect,near,far)
-        
+        near = getgeom("near", 1.0)
+        far = getgeom("far", 1000.0)
+        angle = getgeom("perspective_angle", 15.0)
+        gluPerspective(angle, aspect, near, far)

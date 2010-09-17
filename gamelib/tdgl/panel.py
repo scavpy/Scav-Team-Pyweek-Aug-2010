@@ -36,7 +36,7 @@ class Panel(part.ScalePart):
         texture = None, # texture of panel
         texture_repeat = 'scale', # == (1,1), num repeats across panel
         )
-    _style_attributes = tuple(_default_style.keys())
+
     def __init__(self,*args,**kw):
         super(Panel,self).__init__(*args,**kw)
         dl = glGenLists(2)
@@ -169,7 +169,6 @@ class LabelPanel(Panel):
                                font_size=16,
                                italic=False,
                                bold=False))
-    _style_attributes = tuple(_default_style.keys())
 
     def __init__(self,name="",text="",html=False,**kw):
         super(LabelPanel,self).__init__(name,**kw)
@@ -213,7 +212,7 @@ class SelectPanel(Panel):
     kind of Panel is likely. """
     _default_style = Panel._default_style.copy()
     _default_style["pad"] = 2
-    _style_attributes = tuple(_default_style.keys())
+
     def __init__(self,name="",contents=(),selected=None,vertical=True,**kw):
         super(SelectPanel,self).__init__(name,**kw)
         self.vertical = vertical

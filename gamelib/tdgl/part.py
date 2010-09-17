@@ -13,7 +13,8 @@
 This file copyright Peter Harris 2009, released under the terms of the
 GNU GPL v3. See www.gnu.org for details.
 """
-import gl
+import weakref
+
 from gl import (
     glPushMatrix, glPopMatrix,
     glTranslatef, glRotatef, glScalef,
@@ -22,10 +23,10 @@ from gl import (
 
 import stylesheet
 
-def diffkeys(d1,d2):
+def diffkeys(d1, d2):
     """Keys of d2 that are not in d1 or which have different values in d2"""
     s = set()
-    for k,v in d2.items():
+    for k, v in d2.items():
         if k not in d1 or d1[k] != v:
             s.add(k)
     return s
@@ -34,15 +35,14 @@ class Part(object):
     """A component of a scene.  It can draw itself, restyle itself according
     to a stylesheet, respond to an event, step to the next animation frame.
     """
-    _default_geom = {"pos":(0,0,0),"angle":0.0}
+    _default_geom = {"pos":(0, 0, 0), "angle":0.0}
     _default_style = {}
-    _style_attributes = ()
     _expired = False
-    _has_transparent = True # by default, assume we need a transparency rendering pass
+    _has_transparent = True # assume we need transparent rendering pass
     _name = ""    # ID for use in stylesheets
     _visible = True
     _active = True  # relevant to whether a Group containing the part expires
-    def __init__(self,name="",geom=None,style=None,**kw):
+    def __init__(self, name="", geom=None, style=None, **kw):
         """ Set the part's name, geometry and style.
 
             The _geom and _style dicts are first copied from 
@@ -64,64 +64,56 @@ class Part(object):
             self._style.update(style)
         if name:
             self._name = name
-        self._style_classes = set(kw.get('style_classes',()))
-        for uk,v in kw.items():
+        self._style_classes = set(kw.get('style_classes', ()))
+        for uk, v in kw.items():
             if uk.startswith("_"):
                 k = uk[1:]
-                kdash = k.replace("_","-")
+                kdash = k.replace("_", "-")
                 if k in self._geom:
                     self._geom[k] = v
                 elif k in self._style:
                     self._style[k] = v
                 elif kdash in self._style:
                     self._style[kdash] = v
+        self._parentref = None
 
-    def getgeom(self,name,default=None):
+    def getgeom(self, name, default=None):
         """Get a geometry value"""
-        return self._geom.setdefault(name,default)
-    def getstyle(self,name,default=None):
+        return self._geom.setdefault(name, default)
+    def getstyle(self, name, default=None):
         """Get a style value"""
-        return self._style.setdefault(name,default)
-    def setgeom(self,name,val):
+        return self._style.setdefault(name, default)
+    def setgeom(self, name, val):
         """Set a geometry value"""
-        self._geom[name]=val
-    def setstyle(self,name,val):
+        self._geom[name] = val
+    def setstyle(self, name, val):
         """Set a style value"""
-        self._style[name]=val
+        self._style[name] = val
 
-    def add_styles(self,*style_names):
+    def add_styles(self, *style_names):
         """Add some style classes and restyle the part"""
         self._style_classes |= set(style_names)
         self.restyle()
-    def remove_styles(self,*style_names):
+    def remove_styles(self, *style_names):
         """Remove some style classes and restyle the part"""
         self._style_classes -= set(style_names)
         self.restyle()
-    def toggle_styles(self,*style_names):
+    def toggle_styles(self, *style_names):
         """Toggle some style classes and restyle the part"""
         self._style_classes ^= set(style_names)
         self.restyle()
     def style_classes(self):
         """Get the style classes applied to this part"""
         return self._style_classes
-
-    def style_selector(self):
-        """A selector for this object to use for stylesheet lookups"""
-        sl = []
-        if self._name:
-            sl.append("#%s" % self._name)
-        sl.append(self.__class__.__name__)
-        sl.extend(self._style_classes)
-        return '.'.join(sl)
         
-    def restyle(self,force=False):
+    def restyle(self, force=False):
         """Re-calculate style information, and if anything has changed,
         prepare whatever expensive calculations, display lists or
         cached objects are needed for drawing with the new style.
         """
-        style = stylesheet.get(self.style_selector(),*self._style_attributes)
+        style = stylesheet.get(self)
         if style:
-            d = diffkeys(self._style,style)
+            d = diffkeys(self._style, style)
             self._style.update(style)
         else:
             d = set()
@@ -130,10 +122,11 @@ class Part(object):
             
     def prepare(self):
         """Perform expensive calculations, load textures or fonts etc.
-        Anything that you want to do only once after init or after each restyle()"""
+        Anything that you want to do only once after init,
+        or after each restyle()"""
         pass
         
-    def draw(self,mode="OPAQUE"):
+    def draw(self, mode="OPAQUE"):
         """Draw, in one of three ways used in different contexts:
           OPAQUE      : draw the opaque bits, with styling
           TRANSPARENT : draw the transparent bits, with styling
@@ -146,12 +139,15 @@ class Part(object):
           NB: if you can be sure no pixels will be drawn with alpha < 1.0, you can
           skip the TRANSPARENT pass. Set _has_transparent to False. 
         """
-        if not self._visible: return    # turning off _visible turns off draw()
+        if not self._visible:
+            return    # turning off _visible turns off draw()
         self.setup_geom()   # position, scaling, rotation etc.
-        if mode != "PICK":  self.setup_style()
+        if mode != "PICK":
+            self.setup_style()
         if self._has_transparent or mode != 'TRANSPARENT':
             self.render(mode)
-        if mode != "PICK":  self.setdown_style()
+        if mode != "PICK":
+            self.setdown_style()
         self.setdown_geom()
         
     def setup_geom(self):
@@ -161,19 +157,27 @@ class Part(object):
         glPushMatrix()
         glTranslatef(*pos)
         if angle:
-            glRotatef(angle,0,0,1.0)
+            glRotatef(angle, 0, 0, 1.0)
         
-    def setup_style(self): pass
+    def setup_style(self):
+        """ set style effects such as colour and texturing """
+        pass
     
-    def render(self,mode): pass
+    def render(self, mode):
+        """ render the part """
+        pass
     
-    def setdown_style(self): pass
+    def setdown_style(self):
+        """ set style back to normal if necessary """
+        pass
     
     def setdown_geom(self):
         """Default setdown_geom pops modelview matrix"""
         glPopMatrix()
         
-    def step(self,ms=20): pass
+    def step(self, ms):
+        """ animate the part, given number of ms elapsed """
+        pass
     
     def expired(self):
         """Return a true value if there is nothing to draw any more"""
@@ -182,33 +186,44 @@ class Part(object):
     # pos and angle properties
     @property
     def pos(self):
-        return self._geom.get('pos',(0,0,0))
+        """ getter for _geom['pos'] """
+        return self._geom.get('pos', (0, 0, 0))
     @pos.setter
-    def pos(self,value):
+    def pos(self, value):
+        """ setter for _geom['pos'] """
         self._geom['pos'] = value
     
     @property
     def angle(self):
-        return self._geom.get('angle',0.0)
+        """ getter for _geom['angle'] """
+        return self._geom.get('angle', 0.0)
     @angle.setter
-    def angle(self,a):
+    def angle(self, a):
+        """ setter for _geom['angle'] """
         self._geom['angle'] = a
 
 class ScalePart(Part):
-    _default_geom={"pos":(0,0,0),"angle":0,"scale":1}
+    """ A part that can be resized by setting its scale property """
+    _default_geom = {"pos":(0, 0, 0), "angle":0, "scale":1}
     def setup_geom(self):
         """Move to pos, turn by angle and scale by scale"""
-        super(ScalePart,self).setup_geom()
-        scale=self.scale
+        super(ScalePart, self).setup_geom()
+        scale = self.scale
         if scale and scale != 1:
+            if isinstance(scale, (int, float)):
+                sx, sy, sz = scale, scale, scale
+            else:
+                sx, sy, sz = scale
             glEnable(GL_NORMALIZE)
-            glScalef(scale,scale,scale)
+            glScalef(sx, sy, sz)
     @property
     def scale(self):
-        return self._geom.get('scale',1)
+        """ getter for _geom['scale'] """
+        return self._geom.get('scale', 1)
     @scale.setter
-    def scale(self,s):
-        self._geom['scale'] = a
+    def scale(self, s):
+        """ setter for _geom['scale'] """
+        self._geom['scale'] = s
 
 class Group(Part):
     """A collection of parts, bundled together for convenience.
@@ -219,10 +234,10 @@ class Group(Part):
     _transient = False
     _has_transparent = True # contents might need a transparency rendering pass
 
-    def __init__(self,name="",contents=(),**kwd):
-        super(Group,self).__init__(name,**kwd)
-        self._transient = kwd.get('transient',False)
-        self.named_parts = {}
+    def __init__(self, name="", contents=(), **kwd):
+        super(Group, self).__init__(name, **kwd)
+        self._transient = kwd.get('transient', False)
+        self.named_parts = weakref.WeakValueDictionary()
         self.contents = []
         for p in contents:
             self.append(p)
@@ -231,47 +246,52 @@ class Group(Part):
     def __iter__(self):
         return iter(self.contents)
 
-    def append(self,newpart):
+    def append(self, newpart):
         """Add another part to the contents of the group"""
+        newpart._parentref = weakref.ref(self)
         self.contents.append(newpart)
         if newpart._name:
             self.named_parts[newpart._name] = newpart
 
-    def remove(self,delpart):
+    def remove(self, delpart):
         """Remove a part if it is in the contents of a group"""
         try:
             self.contents.remove(delpart)
         except ValueError:
             pass
+        delpart._parentref = None
         name = delpart._name
         if (name in self.named_parts and
            self.named_parts[name] == delpart):
             del self.named_parts[name]
 
-    def __getitem__(self,name):
+    def __getitem__(self, name):
         """Get a named part from contents of group, or from any group
         within it"""
         try:
             return self.named_parts[name]
         except KeyError:
             for g in self.contents:
-                if isinstance(g,Group):
+                if isinstance(g, Group):
                     p = g[name]
                     if p:
                         return p
             return None
 
     # internal workings
-    def render(self,mode):
+    def render(self, mode):
+        """ render by drawing all the contents """
         for p in self.contents:
             p.draw(mode)
-    def restyle(self,force=False):
-        super(Group,self).restyle(force)
+    def restyle(self, force=False):
+        """ re-style the contents """
+        super(Group, self).restyle(force)
         for p in self.contents:
             p.restyle(force)
-    def step(self,ms=20):
+    def step(self, ms):
+        """ step the contents """
         self.step_contents(ms)
-    def step_contents(self,ms=20):
+    def step_contents(self, ms):
         """Next animation frame of each visible part, then remove
         any that have expired"""
         any_active = False
@@ -287,21 +307,27 @@ class Group(Part):
 class VisibleSetsGroup(Group):
     """A group which only makes some of its contents visible
     depending on its state"""
-    def __init__(self,name="",contents=(),visible_sets=None,state=None,**kw):
-        super(VisibleSetsGroup,self).__init__(name,contents,**kw)
-        self._visible_sets={}
+    def __init__(self, name="", contents=(), 
+                 visible_sets=None, state=None, **kw):
+        super(VisibleSetsGroup, self).__init__(name, contents, **kw)
+        self._visible_sets = {}
+        self._state = None
+        self._visible_parts = set()
         self.state = state
         if visible_sets:
             self._visible_sets.update(visible_sets)
     @property
     def state(self):
+        """ getter for _state """
         return self._state
     @state.setter
-    def state(self,s):
+    def state(self, s):
+        """ setter for _state, sets _visible_parts accordingly """
         self._state = s
-        self._visible_parts = set(self._visible_sets.get(s,()))
+        self._visible_parts = set(self._visible_sets.get(s, ()))
 
-    def render(self,mode):
+    def render(self, mode):
+        """ only draw visible parts """
         visibles = self._visible_parts
         for p in self.contents:
             if p._name == "" or p._name in visibles:

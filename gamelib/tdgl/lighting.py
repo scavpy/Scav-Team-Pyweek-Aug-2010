@@ -77,10 +77,10 @@ def light_spot_direction(lightnum,direction,ms=0):
     adjust_light(lightnum,GL_SPOT_DIRECTION,direction,ms)
     
 def light_spot_cutoff(lightnum,cutoff,ms=0):
-    adjust_light(lightnum,GL_SPOT_CUTOFF,cutoff,ms)
+    adjust_light(lightnum,GL_SPOT_CUTOFF,(cutoff,),ms)
     
 def light_spot_exponent(lightnum,exponent,ms=0):
-    adjust_light(lightnum,GL_SPOT_EXPONENT,exponent,ms)
+    adjust_light(lightnum,GL_SPOT_EXPONENT,(exponent,),ms)
     
 def light_attenuation(lightnum,value=0,ms=0):
     adjust_light(lightnum,GL_QUADRATIC_ATTENUATION,(value,),ms)

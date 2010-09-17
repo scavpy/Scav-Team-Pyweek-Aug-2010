@@ -7,8 +7,10 @@
 
     NB: In Blender, export to Wavefront OBJ file with high-quality normals
         and NOT Rotate x90
-"""
 
+    In Wings3D, just export, and WFObj will try to handle the oddities of it
+"""
+import re
 import part, picking
 from tdgl.gl import *
 from pyglet import resource
@@ -18,21 +20,24 @@ import material
 
 obj_pool = WeakValueDictionary()
 
-
+    
 class WFObj(object):
     """ a set of display lists constructed from a .obj file
+
+    Try to convert Wings3D's y-up coordinate system into tdgl's z-up
+     (interchange z->x, x->y, y->z in vertex coords and normals)
     """
-    def __init__(self,fname,swapyz=True):
+    def __init__(self,fname):
         self.mesh_dls = {}
         self.mat_dls = material.MDLdict()
         self.mesh_trans = {}
-        self.load_obj(fname,swapyz)
+        self.load_obj(fname)
     def __del__(self):
         if glDeleteLists:
             for dl in self.mesh_dls.values():
                 glDeleteLists(dl,1)
             
-    def load_obj(self,fname,swapyz=False,on_polygon=None):
+    def load_obj(self,fname,on_polygon=None):
         """ Load the .obj file, drawing each sub-object into a display
             list, and setting each material into a display list
 
@@ -40,13 +45,20 @@ class WFObj(object):
             for piece 'xxx', and just adds a glTranslate before and
             after drawing 'xxx'.
         """
-        objlines = resource.location(fname).open(fname,"r")
+        objlines = resource.file(fname,"ru")
         self.origins = {}
         def int0(s):
             if s:
                 return int(s)
             else:
                 return 0
+
+        def coords(tokens,rotaxes=False):
+            xyz = [float(c) for c in tokens[1:4]]
+            if rotaxes:
+                xyz.insert(0,xyz.pop())
+            return xyz
+
         piece = ''
         mesh_dl = None
         npoints = 0
@@ -54,6 +66,11 @@ class WFObj(object):
         vertices = []
         normals = []
         tcoords = []
+        rotaxes = False
+        firstline = objlines.next()
+        if "Exported from Wings 3D" in firstline:
+            rotaxes = True
+
         for line in objlines:
             tokens = line.split()
             if not tokens or line[0] == '#':
@@ -77,14 +94,11 @@ class WFObj(object):
                     self.mesh_trans[piece] = False
                     glNewList(mesh_dl,GL_COMPILE)
             elif key == 'v':
-                vx,vy,vz = map(float,tokens[1:4])
-                if swapyz:
-                    vx,vy,vz = vx,vz,vy
-                vertices.append((vx,vy,vz))
+                vertices.append(coords(tokens, rotaxes))
             elif key == 'vn':
-                normals.append(map(float,tokens[1:4]))
+                normals.append(coords(tokens, rotaxes))
             elif key == 'vt':
-                tcoords.append(map(float,tokens[1:3]))
+                tcoords.append(coords(tokens))
             elif key == 'usemtl':
                 if npoints:
                     glEnd()
@@ -144,7 +158,7 @@ class WFObj(object):
 
 def get_obj(fname):
     if fname not in obj_pool:
-        obj = WFObj(fname,False)
+        obj = WFObj(fname)
         obj_pool[fname] = obj
     return obj_pool[fname]
 
@@ -156,6 +170,7 @@ class ObjPart(part.Part):
                          'override-mtl', 'mtl-override-pieces')
     def __init__(self,name='',geom=None,style=None, **kw):
         super(ObjPart,self).__init__(name,geom=geom, style=style, **kw)
+
     def prepare(self):
         """ Prepare WFObj from style """
         fname = self.getstyle("obj-filename")
@@ -207,7 +222,7 @@ class ObjPart(part.Part):
             glCullFace(GL_BACK)
             pieces = self.pieces
             for piece in pieces:
-                picking.label((self.__class__.__name__, self._name, piece))
+                picking.label(self,piece=piece)
                 self.obj.drawpiece(piece)
             picking.nolabel()
                 
