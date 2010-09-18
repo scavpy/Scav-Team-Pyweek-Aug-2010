@@ -195,10 +195,10 @@ class Balrog(Hunter):
     def __init__(self,name='',**kw):
         super(Balrog,self).__init__(name,**kw)
         self.dark = lighting.claim_light()
-        lighting.light_colour(self.dark,(0.1,-0.8,-0.8,1.0))
+        lighting.light_colour(self.dark,(-0.1,-0.8,-0.8,1.0))
         x,y,z = self.pos
         lighting.light_position(self.dark,(x,y,1.0,1.0))
-        lighting.light_attenuation(self.dark,0.05)
+        lighting.light_attenuation(self.dark,0.02)
         lighting.light_switch(self.dark,True)
 
     def __del__(self):

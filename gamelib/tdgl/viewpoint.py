@@ -196,5 +196,5 @@ class SceneView(Viewpoint):
         getgeom = self.getgeom
         near = getgeom("near", 1.0)
         far = getgeom("far", 1000.0)
-        angle = getgeom("perspective_angle", 15.0)
+        angle = getgeom("perspective_angle", 30.0)
         gluPerspective(angle, aspect, near, far)

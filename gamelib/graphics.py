@@ -262,17 +262,12 @@ class DeathBall(Ball):
     ammo = 3
     speed = 0.016
 
-class ScreenFrame(viewpoint.OrthoView):
-    def __init__(self,name="frame",contents=(),**kw):
-        super(ScreenFrame,self).__init__(name,contents,**kw)
-
 class ScreenBorder(part.Part):
     _default_geom={"width":1024,"height":768}
     _default_style={"border":3, "bd":(0.4,0.2,0.2,1),
                     "bg":(0.6,0.2,0.2,1),
                     "margin":8,"fg":(1,1,1,1),
                     "font_size":14, "font":"Courier"}
-    _style_attributes = tuple(_default_style.keys())
     
     def __init__(self,name,title="",score=0,ammo=0,ammo_name=None,**kw):
         super(ScreenBorder,self).__init__(name,**kw)

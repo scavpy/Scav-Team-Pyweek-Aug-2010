@@ -20,7 +20,7 @@ import collision
 import levelfile
 import monsters
 import main # for options
-from graphics import ClockPart, Ball, Player, ScreenFrame, StoryPanel, ScreenBorder
+from graphics import ClockPart, Ball, Player, StoryPanel, ScreenBorder
 from graphics import BlitzBall, BowlingBall, SpikeBall, HappyBall
 import sounds
 
@@ -110,15 +110,6 @@ class Screen(part.Group):
 class GameScreen(Screen):
     music = "gameplay"
     _screen_styles = {
-        "LabelPanel.onframe": {
-            "bg":(1,1,1,1), "fg":(1,1,1,1),
-            "texture":"data/models/copper.png",
-            "texture_repeat":0.2,
-            "font_size":14, "font":"Courier",
-            "border":3, "bd":(0.4,0.2,0.2,1),
-            "bg_margin":10,"bg_radius":20, "bg_round:":0,
-            "bd_margin":10,"bd_radius":20, "bd_round:":0,
-            },
         "#player":{"obj-filename":"thedetective.obj",
                    "obj-pieces":["Body","Hat","Feet0","Eyes"],
                    "mtl-override-pieces":["Body"],
@@ -189,7 +180,8 @@ class GameScreen(Screen):
             ammo=self.special_ammo,
             ammo_name=ammo_name,
             style=dict(fg=level.fg,bg=level.bg,bd=level.bd))
-        ov = ScreenFrame("frame", [border])
+        ov = OrthoView("frame", [border],
+                       _left=0,_right=1024,_bottom=0,_top=768)
         with ov.compile_style():
             glClearColor(0,0,0,0)
             glDisable(GL_LIGHTING)
@@ -217,7 +209,7 @@ class GameScreen(Screen):
         sv = SceneView("scene",[monsters,hf,player,balls,powerups])
         sv.camera.look_at((x,y,1),10)
         sv.camera.look_from_spherical(87,-90,300)
-        sv.camera.look_from_spherical(80,-90,100,1000)
+        sv.camera.look_from_spherical(80,-90,50,1000)
         self.camera = sv.camera
         self.camera.step(1)
         with sv.compile_style():
@@ -320,7 +312,7 @@ class GameScreen(Screen):
         self.keysdown.add(sym)
         if sym == pygletkey.F3:
             if self.first_person:
-                self.camera.look_from_spherical(80,270,100,200)
+                self.camera.look_from_spherical(80,270,50,200)
                 self.first_person = False
             else:
                 self.camera.look_from_spherical(2,self.player.angle + 180,2,200)
@@ -638,11 +630,11 @@ Or you could hit F3 at the title screen. Enjoy."""
 
 class ScoreScreen(Screen):
     _screen_styles = {
-        "LabelPanel.#finalscore": {
+        "LabelPanel#finalscore": {
             "bg":None, "fg":(1,1,1,1),
             "font_size":64,
             },
-        "LabelPanel.#coroners_report": {
+        "LabelPanel#coroners_report": {
             "bg":(0.9,0.9,0.8,1),"fg":(0,0,0,1),
             "bg_margin":20,
             "font":"Courier",
